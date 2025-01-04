@@ -1,6 +1,6 @@
 package org.example.iosfirebasehope.UI
 
-import CylinderDetailsCard2
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,8 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import getGasColor
-import getGasSymbol
+
 import org.example.iosfirebasehope.navigation.components.GasVolumeScreenComponent
 import org.example.iosfirebasehope.navigation.components.VolumeTypeScreenComponent
 import org.example.iosfirebasehope.navigation.events.GasVolumeScreenEvent

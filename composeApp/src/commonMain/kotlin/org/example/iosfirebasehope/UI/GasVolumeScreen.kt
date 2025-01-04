@@ -50,19 +50,34 @@ fun GasVolumeScreenUI(
     var searchQuery by remember { mutableStateOf("") }
     var filteredCylinders by remember { mutableStateOf(cylinderDetailList) }
     var selectedStatus by remember { mutableStateOf("") }
+    var volumesAndSP by remember { mutableStateOf<Map<String, String>?>(null) } // State to store VolumesAndSP
 
+    println("gas id is $gasId")
 
     LaunchedEffect(gasId) {
-        // Fetch volumes from Firestore
-        val docRef = db.collection("Gases").document(gasId)
-        val docSnapshot = docRef.get()
-        if (docSnapshot.exists) {
-            val volumesList = docSnapshot.get("Volumes") as? List<String>
-            volumesList?.let {
-                volumes = it
+        try {
+            println("Fetching document for gasId: $gasId")
+
+            val docSnapshot = db.collection("Gases").document(gasId).get()
+            if (docSnapshot.exists) {
+                val fetchedVolumesAndSP = docSnapshot.get("VolumesAndSP") as? Map<String, String>
+                if (fetchedVolumesAndSP != null) {
+                    println("Fetched VolumesAndSP: $fetchedVolumesAndSP")
+                    volumesAndSP = fetchedVolumesAndSP
+                    volumes = fetchedVolumesAndSP.keys.toList()
+                } else {
+                    println("VolumesAndSP is null or not a Map")
+                }
+            } else {
+                println("Document with gasId: $gasId does not exist")
             }
+        } catch (e: Exception) {
+            println("Error fetching document: ${e.message}")
+            e.printStackTrace() // Print full stack trace for debugging
         }
     }
+
+
 
     // Calculate status counts for each volume
     val volumeStatusCounts = volumes.map { volume ->
@@ -218,7 +233,7 @@ fun GasVolumeScreenUI(
 
 
 
-            CylinderList(cylinderDetailsList = filteredCylinders, component = component)
+            CylinderList(cylinderDetailsList = filteredCylinders, component = component, volumesAndSP = volumesAndSP)
         }
     }
 }
@@ -229,6 +244,7 @@ fun VolumeCard(volumeStatus: VolumeStatusCounts,cylinderDetailsList: List<Map<St
     val filteredList= cylinderDetailsList.filter { cylinder ->
         cylinder["Volume Type"] == volumeStatus.volume
     }
+
     Card(
         modifier = Modifier
             .height(155.dp)
@@ -264,62 +280,81 @@ fun VolumeCard(volumeStatus: VolumeStatusCounts,cylinderDetailsList: List<Map<St
 
 
 @Composable
-fun CylinderList(cylinderDetailsList: List<Map<String, String>>, modifier: Modifier = Modifier, component: GasVolumeScreenComponent) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        items(cylinderDetailsList) { cylinder ->
-            CylinderDetailsCard2(listOf(cylinder), component = component)
-            Spacer(modifier = Modifier.height(8.dp))
+fun CylinderList(
+    cylinderDetailsList: List<Map<String, String>>,
+    modifier: Modifier = Modifier,
+    component: GasVolumeScreenComponent,
+    volumesAndSP: Map<String, Any>?
+) {
+    if (cylinderDetailsList.isEmpty()) {
+        Text("No cylinders found.", modifier = Modifier.padding(16.dp))
+    } else {
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            items(cylinderDetailsList) { cylinder ->
+                CylinderDetailsCard2(listOf(cylinder), component = component, price = "", volumesAndSP = volumesAndSP)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
     }
 }
 
 @Composable
-fun CylinderDetailsCard2(cylinderDetailsList: List<Map<String, String>>, component: GasVolumeScreenComponent) {
-    val currentCylinderDetails = cylinderDetailsList.firstOrNull()
+fun CylinderDetailsCard2(
+    cylinderDetailsList: List<Map<String, String>>,
+    component: GasVolumeScreenComponent,
+    price: String = "",
+    volumesAndSP: Map<String, Any>?
+) {
+    val currentCylinderDetails = cylinderDetailsList.firstOrNull() ?: return // Early return if null
+
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable(onClick = {
                 // Handle click
-                component.onEvent(GasVolumeScreenEvent.OnCylinderClick(currentCylinderDetails = currentCylinderDetails!!))
+                println("Cylinder clicked: $currentCylinderDetails")
+                component.onEvent(GasVolumeScreenEvent.OnCylinderClick(currentCylinderDetails = currentCylinderDetails))
             }),
         elevation = 4.dp,
         border = BorderStroke(1.dp, Color(0xFF2f80eb)) // Custom border color
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            cylinderDetailsList.forEach { details ->
-                val gasName = details["Gas Type"] ?: ""
+            val gasName = currentCylinderDetails["Gas Type"] ?: ""
+            val gasSymbol = getGasSymbol(gasName)
 
-                val gasSymbol = getGasSymbol(gasName)
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 4.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(getGasColor(gasName), shape = MaterialTheme.shapes.medium)
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(getGasColor(gasName), shape = MaterialTheme.shapes.medium)
-                    ) {
-                        Text(
-                            text = gasSymbol,
-                            color = Color.White,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = gasSymbol,
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
 
-                    Column {
-                        details.filterKeys { key ->
-                            key != "Previous Customers" && key != "Gas Type" && key != "Remarks" && key != "Batch Number"
-                        }.forEach { (key, value) ->
+                Column {
+                    // Define the keys to display in the desired order
+                    val orderedKeys = listOf("Serial Number", "Volume Type", "Status")
+
+                    // Iterate through the ordered keys and display their values
+                    orderedKeys.forEach { key ->
+                        val value = currentCylinderDetails[key] // Get the value for the current key
+                        if (!value.isNullOrEmpty()) { // Check if the value is not null or empty
                             Row(modifier = Modifier.padding(vertical = 2.dp)) {
                                 Text(
                                     text = "$key: ",
@@ -333,8 +368,26 @@ fun CylinderDetailsCard2(cylinderDetailsList: List<Map<String, String>>, compone
                             }
                         }
                     }
-                }
 
+                    // Display the Price field below Status
+//                    val volumeType = currentCylinderDetails["Volume Type"] // Get the Volume Type from details
+//                    if (volumesAndSP != null && volumeType != null) {
+//                        val price = volumesAndSP[volumeType] // Get the price corresponding to the Volume Type
+//                        if (price != null) {
+//                            Row(modifier = Modifier.padding(vertical = 2.dp)) {
+//                                Text(
+//                                    text = "Price: ",
+//                                    fontWeight = FontWeight.Bold,
+//                                    modifier = Modifier.weight(1f)
+//                                )
+//                                Text(
+//                                    text = price.toString(), // Convert price to string
+//                                    modifier = Modifier.weight(1f)
+//                                )
+//                            }
+//                        }
+//                    }
+                }
             }
         }
     }

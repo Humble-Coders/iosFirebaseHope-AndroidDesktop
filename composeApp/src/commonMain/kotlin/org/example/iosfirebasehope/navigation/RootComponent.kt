@@ -9,10 +9,12 @@ import com.arkivanov.decompose.router.stack.pushNew
 import kotlinx.serialization.Serializable
 import org.example.iosfirebasehope.navigation.components.AddCylinderScreenComponent
 import org.example.iosfirebasehope.navigation.components.AllCylinderDetailsScreenComponent
+import org.example.iosfirebasehope.navigation.components.BillScreenComponent
 import org.example.iosfirebasehope.navigation.components.CurrentCylinderDetailsComponent
 import org.example.iosfirebasehope.navigation.components.CylinderStatusScreenComponent
 import org.example.iosfirebasehope.navigation.components.GasVolumeScreenComponent
 import org.example.iosfirebasehope.navigation.components.HomeScreenComponent
+import org.example.iosfirebasehope.navigation.components.IssueCylinderScreenComponent
 import org.example.iosfirebasehope.navigation.components.VolumeTypeScreenComponent
 
 class RootComponent(
@@ -49,6 +51,9 @@ class RootComponent(
                     },
                     onAllCylinderDetailsClick = { cylinderDetailList ->
                         navigation.pushNew(Configuration.AllCylinderDetailsScreen(cylinderDetailList))
+                    },
+                    onBillClick = {
+                        navigation.pushNew(Configuration.BillScreen)
                     }
                 )
             )
@@ -69,7 +74,7 @@ class RootComponent(
                         navigation.pop()
                     },
                     onCylinderClick = {
-                        cylinderDetails ->
+                            cylinderDetails ->
                         navigation.pushNew(
                             Configuration.CurrentCylinderDetails(
                                 currentCylinderDetails = cylinderDetails
@@ -121,6 +126,25 @@ class RootComponent(
                     currentCylinderDetails = config.currentCylinderDetails
                 )
             )
+            is Configuration.BillScreen -> Child.BillScreen(
+                BillScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    },
+                    onIssueCylinderClick = {
+                        navigation.pushNew(Configuration.IssueNewCylinderScreen)
+                    }
+                )
+            )
+            is Configuration.IssueNewCylinderScreen -> Child.IssueNewCylinderScreen(
+                IssueCylinderScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    }
+                )
+            )
         }
     }
 
@@ -134,6 +158,8 @@ class RootComponent(
         data class VolumeTypeScreen(val component: VolumeTypeScreenComponent): Child()
         data class AllCylinderDetailsScreen(val component: AllCylinderDetailsScreenComponent): Child()
         data class CurrentCylinderDetailsScreen(val component: CurrentCylinderDetailsComponent): Child()
+        data class BillScreen(val component: BillScreenComponent): Child()
+        data class IssueNewCylinderScreen(val component: IssueCylinderScreenComponent): Child()
     }
 
     @Serializable  //converts from json to kotlin object
@@ -164,5 +190,12 @@ class RootComponent(
 
         @Serializable
         data class CurrentCylinderDetails(val currentCylinderDetails: Map<String, String>): Configuration()
+
+        @Serializable
+        data object BillScreen: Configuration()
+
+        @Serializable
+        data object IssueNewCylinderScreen: Configuration()
+
     }
 }

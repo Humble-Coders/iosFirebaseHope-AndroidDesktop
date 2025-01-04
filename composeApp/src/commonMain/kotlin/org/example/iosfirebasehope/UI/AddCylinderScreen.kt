@@ -1,3 +1,4 @@
+//final screen 
 package org.example.iosfirebasehope.UI
 
 import androidx.compose.foundation.background
@@ -19,9 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.FieldValue
-import dev.gitlive.firebase.firestore.firestore
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.input.pointer.pointerInput
@@ -32,7 +31,6 @@ import org.example.iosfirebasehope.navigation.events.AddCylinderScreenEvent
 
 @Composable
 fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFirestore) {
-//    val db = Firebase.firestore
     val coroutineScope = rememberCoroutineScope()
 
     var serialNumber by remember { mutableStateOf("") }
@@ -41,6 +39,7 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
     var selectedVolumeType by remember { mutableStateOf<String?>(null) }
     var selectedStatus by remember { mutableStateOf<String?>(null) }
     var remarks by remember { mutableStateOf("") }
+    var quantity by remember { mutableStateOf("") }
 
     val gasTypes = remember { mutableStateListOf<String>() }
     val volumeTypes = remember { mutableStateListOf<String>() }
@@ -49,9 +48,9 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
     var volumeTypeDropdownExpanded by remember { mutableStateOf(false) }
     var statusDropdownExpanded by remember { mutableStateOf(false) }
 
-    // Scaffold state for Snackbar
     val scaffoldState = rememberScaffoldState()
 
+    // Fetch gas types on launch
     LaunchedEffect(Unit) {
         val gases = db.collection("Gases").get().documents
         gasTypes.clear()
@@ -61,12 +60,12 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
     val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(
-        scaffoldState = scaffoldState,  // Set scaffoldState
+        scaffoldState = scaffoldState,
         topBar = {
             TopAppBar(
                 title = { Text("Add Cylinder", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { component.onEvent(AddCylinderScreenEvent.onBackClick)}) {
+                    IconButton(onClick = { component.onEvent(AddCylinderScreenEvent.onBackClick) }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -78,7 +77,6 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
             )
         },
         content = {
-            // Dismissing the keyboard when tapping anywhere outside the text fields
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -86,63 +84,13 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onPress = {
-                                keyboardController?.hide()  // Hide keyboard when tapped outside
+                                keyboardController?.hide()
                             }
                         )
                     }
             ) {
                 Column {
-                    Text("Serial Number", color = Color(0xFF2f80eb))
-
-                    TextField(
-                        colors = TextFieldDefaults.textFieldColors(
-                            backgroundColor = Color.White,
-                            focusedIndicatorColor = Color.White,
-                            unfocusedIndicatorColor = Color.White,
-                            cursorColor = Color(0xFF2f80eb)
-                        ),
-                        value = serialNumber,
-                        onValueChange = { serialNumber = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White, RoundedCornerShape(8.dp))
-                            .border(1.dp, Color(0xFF2f80eb), RoundedCornerShape(8.dp)),
-                        keyboardOptions = KeyboardOptions.Default.copy(
-                            imeAction = ImeAction.Done  // Done button on the keyboard
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = { keyboardController?.hide() }
-                        )
-
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text("Batch Number", color = Color(0xFF2f80eb))
-                    TextField(
-                        colors = TextFieldDefaults.textFieldColors(
-                            backgroundColor = Color.White,
-                            focusedIndicatorColor = Color.White,
-                            unfocusedIndicatorColor = Color.White,
-                            cursorColor = Color(0xFF2f80eb)
-                        ),
-                        value = batchNumber,
-                        onValueChange = { batchNumber = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White, RoundedCornerShape(8.dp))
-                            .border(1.dp, Color(0xFF2f80eb), RoundedCornerShape(8.dp)),
-                        keyboardOptions = KeyboardOptions.Default.copy(
-                            imeAction = ImeAction.Done  // Done button on the keyboard
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = { keyboardController?.hide() }
-                        )
-
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                    // Gas Type Dropdown
                     Text("Gas Type", color = Color(0xFF2f80eb))
                     PrettyDropdownMenu(
                         selectedItem = selectedGasType ?: "Select Gas Type",
@@ -152,23 +100,33 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                         dropdownExpanded = gasTypeDropdownExpanded,
                         fetchDataOnItemClick = { gas ->
                             coroutineScope.launch {
-                                val volumes = db.collection("Gases").document(gas).get().get("Volumes") as List<String>
+                                val document = db.collection("Gases").document(gas).get()
                                 volumeTypes.clear()
-                                volumeTypes.addAll(volumes)
+                                if (gas == "LPG") {
+                                    val volumesMap = document.get("Volumes") as? Map<String, Int>
+                                    volumesMap?.let {
+                                        volumeTypes.addAll(it.keys.map { volume -> volume.replace(",", ".") })
+                                    }
+                                } else {
+                                    val volumesMap = document.get("VolumesAndSP") as? Map<String, Int>
+                                    volumesMap?.let {
+                                        volumeTypes.addAll(it.keys.map { volume -> volume.replace(",", ".") })
+                                    }
+                                }
                             }
                         }
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Volume Type Dropdown
                     Text("Volume Type", color = Color(0xFF2f80eb))
                     PrettyDropdownMenu(
-                        selectedItem = selectedVolumeType ?: "Select Volume Type",
+                        selectedItem = selectedVolumeType?.replace(",", ".") ?: "Select Volume Type", // Display as `.` for readability
                         items = volumeTypes,
-                        onItemSelected = { selectedVolumeType = it },
+                        onItemSelected = { selectedVolumeType = it.replace(".", ",") }, // Convert back to `,` for database usage
                         onDropdownExpanded = { expanded -> volumeTypeDropdownExpanded = expanded },
                         dropdownExpanded = volumeTypeDropdownExpanded,
-                        // Check if gas type is selected before allowing volume type selection
                         fetchDataOnItemClick = {
                             if (selectedGasType == null) {
                                 coroutineScope.launch {
@@ -180,8 +138,85 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                         }
                     )
 
+
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Conditional UI for Serial Number or Quantity
+                    if (selectedGasType != "LPG") {
+                        Text("Serial Number", color = Color(0xFF2f80eb))
+                        TextField(
+                            colors = TextFieldDefaults.textFieldColors(
+                                backgroundColor = Color.White,
+                                focusedIndicatorColor = Color.White,
+                                unfocusedIndicatorColor = Color.White,
+                                cursorColor = Color(0xFF2f80eb)
+                            ),
+                            value = serialNumber,
+                            onValueChange = { serialNumber = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White, RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFF2f80eb), RoundedCornerShape(8.dp)),
+                            keyboardOptions = KeyboardOptions.Default.copy(
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { keyboardController?.hide() }
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    } else {
+                        Text("Quantity", color = Color(0xFF2f80eb))
+                        TextField(
+                            colors = TextFieldDefaults.textFieldColors(
+                                backgroundColor = Color.White,
+                                focusedIndicatorColor = Color.White,
+                                unfocusedIndicatorColor = Color.White,
+                                cursorColor = Color(0xFF2f80eb)
+                            ),
+                            value = quantity,
+                            onValueChange = { quantity = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White, RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFF2f80eb), RoundedCornerShape(8.dp)),
+                            keyboardOptions = KeyboardOptions.Default.copy(
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { keyboardController?.hide() }
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // Batch Number Field
+                    Text("Batch Number", color = Color(0xFF2f80eb))
+                    TextField(
+                        colors = TextFieldDefaults.textFieldColors(
+                            backgroundColor = if (selectedGasType == "LPG") Color.LightGray else Color.White,
+                            focusedIndicatorColor = Color.White,
+                            unfocusedIndicatorColor = Color.White,
+                            cursorColor = Color(0xFF2f80eb)
+                        ),
+                        value = batchNumber,
+                        onValueChange = { batchNumber = it },
+                        enabled = selectedGasType != "LPG", // Disable if LPG is selected
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(if (selectedGasType == "LPG") Color.LightGray else Color.White, RoundedCornerShape(8.dp))
+                            .border(1.dp, Color(0xFF2f80eb), RoundedCornerShape(8.dp)),
+                        keyboardOptions = KeyboardOptions.Default.copy(
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = { keyboardController?.hide() }
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Status Dropdown
                     Text("Status", color = Color(0xFF2f80eb))
                     PrettyDropdownMenu(
                         selectedItem = selectedStatus ?: "Select Status",
@@ -193,77 +228,117 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Remarks Field
                     Text("Remarks", color = Color(0xFF2f80eb))
                     TextField(
                         colors = TextFieldDefaults.textFieldColors(
-                            backgroundColor = Color.White,
+                            backgroundColor = if (selectedGasType == "LPG") Color.LightGray else Color.White,
                             focusedIndicatorColor = Color.White,
                             unfocusedIndicatorColor = Color.White,
                             cursorColor = Color(0xFF2f80eb)
                         ),
                         value = remarks,
                         onValueChange = { remarks = it },
+                        enabled = selectedGasType != "LPG", // Disable if LPG is selected
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color.White, RoundedCornerShape(8.dp))
+                            .background(if (selectedGasType == "LPG") Color.LightGray else Color.White, RoundedCornerShape(8.dp))
                             .border(1.dp, Color(0xFF2f80eb), RoundedCornerShape(8.dp)),
                         keyboardOptions = KeyboardOptions.Default.copy(
-                            imeAction = ImeAction.Done  // Done button on the keyboard
+                            imeAction = ImeAction.Done
                         ),
                         keyboardActions = KeyboardActions(
                             onDone = { keyboardController?.hide() }
                         )
-
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Add Cylinder Button
                     Button(
                         onClick = {
                             coroutineScope.launch {
-                                val cylinderDetails = hashMapOf(
-                                    "Serial Number" to serialNumber,
-                                    "Batch Number" to batchNumber,
-                                    "Gas Type" to selectedGasType,
-                                    "Volume Type" to selectedVolumeType,
-                                    "Status" to selectedStatus,
-                                    "Remarks" to remarks,
-                                    "Previous Customers" to listOf(
-                                        // Array of 2 maps, each with Name, Date, and Rate set to null
-                                        mapOf("Name" to null, "Date" to null, "Rate" to null),
-                                        mapOf("Name" to null, "Date" to null, "Rate" to null)
-                                    )
-                                )
-                                val documentRef = db.collection("Cylinders").document("Cylinders")
-                                val documentSnapshot = documentRef.get()
+                                if (selectedGasType == "LPG") {
+                                    val volumesMap = db.collection("Gases").document("LPG").get().get("Volumes") as? Map<String, Int>
+                                    val lastSerialNumber = volumesMap?.get(selectedVolumeType) ?: 0
+                                    val quantityInt = quantity.toIntOrNull() ?: 0
 
-                                if (documentSnapshot.exists) {
-                                    val existingCylinderDetails = documentSnapshot.get("CylinderDetails") as? List<Map<String, String>>
-                                    val serialNumberExists = existingCylinderDetails?.any { it["SerialNumber"] == serialNumber } ?: false
+                                    if (quantityInt <= 0) {
+                                        scaffoldState.snackbarHostState.showSnackbar("Please enter a valid quantity.")
+                                        return@launch
+                                    }
 
-                                    if (!serialNumberExists) {
-                                        documentRef.update(
-                                            mapOf("CylinderDetails" to FieldValue.arrayUnion(cylinderDetails))
+                                    val cylinders = (1..quantityInt).map { i ->
+                                        hashMapOf(
+                                            "Serial Number" to (lastSerialNumber + i).toString(),
+                                            "Batch Number" to batchNumber,
+                                            "Gas Type" to selectedGasType,
+                                            "Volume Type" to selectedVolumeType, // Treat as a string
+                                            "Status" to selectedStatus,
+                                            "Remarks" to remarks,
+                                            "Previous Customers" to emptyList<Map<String, String>>(), // Correct initialization of an empty list
                                         )
 
-                                        coroutineScope.launch {
+                                    }
+
+                                    db.collection("Cylinders").document("Cylinders").update(
+                                        mapOf("CylinderDetails" to FieldValue.arrayUnion(*cylinders.toTypedArray()))
+                                    )
+
+                                    db.collection("Gases").document("LPG").update(
+                                        "Volumes.$selectedVolumeType" to (lastSerialNumber + quantityInt)
+                                    )
+
+                                    scaffoldState.snackbarHostState.showSnackbar(
+                                        "$quantityInt cylinders added successfully."
+                                    )
+                                } else {
+                                    val cylinderDetails = hashMapOf(
+                                        "Serial Number" to serialNumber,
+                                        "Batch Number" to batchNumber,
+                                        "Gas Type" to selectedGasType,
+                                        "Volume Type" to selectedVolumeType, // Treat as string
+                                        "Status" to selectedStatus,
+                                        "Remarks" to remarks,
+                                        "Previous Customers" to emptyList<Map<String, String>>(), // Correctly defining an empty list of maps
+                                        "Return Date" to "", // Use an empty string for a date field
+                                        "Currently Issued To" to emptyMap<String, String>() // Correct initialization of an empty map
+                                    )
+                                    val documentRef = db.collection("Cylinders").document("Cylinders")
+                                    val documentSnapshot = documentRef.get()
+
+                                    if (documentSnapshot.exists) {
+                                        val existingCylinderDetails = documentSnapshot.get("CylinderDetails") as? List<Map<String, String>>
+                                        val serialNumberExists = existingCylinderDetails?.any { it["Serial Number"] == serialNumber } ?: false
+
+                                        if (!serialNumberExists) {
+                                            documentRef.update(
+                                                mapOf("CylinderDetails" to FieldValue.arrayUnion(cylinderDetails))
+                                            )
+
                                             scaffoldState.snackbarHostState.showSnackbar(
                                                 "Cylinder Successfully Added."
                                             )
-                                        }
-                                    } else {
-                                        // Handle the case where the serial number already exists (e.g., show a toast message)
-                                        coroutineScope.launch {
+                                        } else {
                                             scaffoldState.snackbarHostState.showSnackbar(
                                                 "Cylinder with SerialNumber $serialNumber already exists."
                                             )
                                         }
+                                    } else {
+                                        documentRef.set(
+                                            mapOf("CylinderDetails" to listOf(cylinderDetails))
+                                        )
                                     }
-                                } else {
-                                    documentRef.set(
-                                        mapOf("CylinderDetails" to listOf(cylinderDetails))
-                                    )
                                 }
+
+                                // Clear input fields after adding
+                                serialNumber = ""
+                                batchNumber = ""
+                                selectedGasType = null
+                                selectedVolumeType = null
+                                selectedStatus = null
+                                remarks = ""
+                                quantity = ""
                             }
                         },
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb)),
@@ -271,13 +346,11 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                     ) {
                         Text("Add Cylinder", color = Color.White)
                     }
-
                 }
             }
         }
     )
 }
-
 
 @Composable
 fun PrettyDropdownMenu(
@@ -320,9 +393,7 @@ fun PrettyDropdownMenu(
             DropdownMenu(
                 expanded = dropdownExpanded,
                 modifier = Modifier.width(300.dp),
-                onDismissRequest = { onDropdownExpanded(false)
-
-                }
+                onDismissRequest = { onDropdownExpanded(false) }
             ) {
                 items.forEach { item ->
                     DropdownMenuItem(

@@ -150,7 +150,7 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                             icon = { Icon(Icons.Default.DateRange, contentDescription = "Bill", tint = Color.White) },
                             label = { Text("Bill") },
                             selected = false,
-                            onClick = { /* Handle Bill click */ }
+                            onClick = {component.onEvent(HomeScreenEvent.OnBillClick)}
                         )
                         BottomNavigationItem(
                             icon = { Icon(Icons.Default.LocationOn, contentDescription = "Refilling", tint = Color.White) },
