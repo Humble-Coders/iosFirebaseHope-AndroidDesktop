@@ -59,17 +59,22 @@ import org.example.iosfirebasehope.navigation.events.VolumeTypeScreenEvent
 fun VolumeTypeScreenUI(
     component: VolumeTypeScreenComponent,
     VolumeType: String,
-    cylinderDetailList: List<Map<String, String>>
+    cylinderDetailList: List<Map<String, String>>,
+    gasId: String
 ) {
 
     var searchQuery by remember { mutableStateOf("") }
     var filteredCylinders by remember { mutableStateOf(cylinderDetailList) }
     var selectedStatus by remember { mutableStateOf("") }
 
+    val toShowGasName = cylinderDetailList.firstOrNull()?.get("Gas Type") ?: ""
+
+    val volumeType = VolumeType.replace(",", ".")
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gas ID: $VolumeType") },
+                title = { Text("$gasId: $volumeType") },
                 backgroundColor = Color(0xFF2f80eb),
                 contentColor = Color.White,
                 navigationIcon = {
@@ -188,7 +193,7 @@ fun VolumeTypeScreenUI(
 
 
 
-            CylinderList(cylinderDetailsList = filteredCylinders)
+            CylinderList(cylinderDetailsList = filteredCylinders, component = component)
         }
     }
 }
@@ -196,7 +201,7 @@ fun VolumeTypeScreenUI(
 
 
 @Composable
-fun CylinderList(cylinderDetailsList: List<Map<String, String>>, modifier: Modifier = Modifier) {
+fun CylinderList(cylinderDetailsList: List<Map<String, String>>, modifier: Modifier = Modifier, component: VolumeTypeScreenComponent) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -204,7 +209,8 @@ fun CylinderList(cylinderDetailsList: List<Map<String, String>>, modifier: Modif
     ) {
         items(cylinderDetailsList) { cylinder ->
             CylinderDetailsCard4(
-                listOf(cylinder)
+                listOf(cylinder),
+                component = component
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -212,13 +218,15 @@ fun CylinderList(cylinderDetailsList: List<Map<String, String>>, modifier: Modif
 }
 
 @Composable
-fun CylinderDetailsCard4(cylinderDetailsList: List<Map<String, String>>) {
+fun CylinderDetailsCard4(cylinderDetailsList: List<Map<String, String>>, component: VolumeTypeScreenComponent) {
+
+    val currentCylinderDetails = cylinderDetailsList.firstOrNull() ?: return
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable(onClick = {}),
+            .clickable(onClick = {component.onEvent(VolumeTypeScreenEvent.OnCylinderClick(currentCylinderDetails))}),
         elevation = 4.dp,
         border = BorderStroke(1.dp, Color(0xFF2f80eb)) // Custom border color
     ) {
@@ -247,20 +255,26 @@ fun CylinderDetailsCard4(cylinderDetailsList: List<Map<String, String>>) {
                     }
                     Spacer(modifier = Modifier.width(16.dp))
 
+                    val orderedKeys = listOf(
+                        "Serial Number",
+                        "Volume Type",
+                        "Status",
+                    )
+
                     Column {
-                        details.filterKeys { key ->
-                            key != "Previous Customers" && key != "Gas Type" && key != "Remarks" && key != "Batch Number"
-                        }.forEach { (key, value) ->
-                            Row(modifier = Modifier.padding(vertical = 2.dp)) {
-                                Text(
-                                    text = "$key: ",
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = value,
-                                    modifier = Modifier.weight(1f)
-                                )
+                        orderedKeys.forEach { key ->
+                            details[key]?.let { value ->
+                                Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                                    Text(
+                                        text = "$key: ",
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = value.replace(",", "."), // Replace commas with dots
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }

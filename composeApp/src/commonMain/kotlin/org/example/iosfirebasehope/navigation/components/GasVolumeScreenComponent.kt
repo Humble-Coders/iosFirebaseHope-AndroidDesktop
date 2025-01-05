@@ -8,7 +8,7 @@ class GasVolumeScreenComponent(
     val gasId: String,
     val cylinderDetailList: List<Map<String, String>>,
     componentContext: ComponentContext,
-    private val onGasCardClick: (String, List<Map<String, String>>) -> Unit,
+    private val onGasCardClick: (String, List<Map<String, String>>, String) -> Unit,
     private val onBackClick: () -> Unit,
     private val onCylinderClick: (Map<String, String>) -> Unit
 ) {
@@ -17,7 +17,8 @@ class GasVolumeScreenComponent(
         when (event) {
             is GasVolumeScreenEvent.onGasCardClick -> onGasCardClick(
                 event.volumeType,
-                event.cylinderDetailList
+                event.cylinderDetailList,
+                event.gasId
             )
             is GasVolumeScreenEvent.onBackClick -> onBackClick()
             is GasVolumeScreenEvent.OnCylinderClick -> onCylinderClick(event.currentCylinderDetails)

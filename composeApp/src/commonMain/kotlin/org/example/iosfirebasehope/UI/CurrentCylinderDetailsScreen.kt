@@ -31,7 +31,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
+import kotlinx.coroutines.launch
 import org.example.iosfirebasehope.navigation.components.CurrentCylinderDetailsComponent
+import org.example.iosfirebasehope.navigation.events.CurrentCylinderDetailsScreenEvent
 
 @Composable
 fun CurrentCylinderDetailsUI(
@@ -39,6 +41,12 @@ fun CurrentCylinderDetailsUI(
     component: CurrentCylinderDetailsComponent,
     db: FirebaseFirestore // FirebaseFirestore instance for data fetching
 ) {
+
+    var showEditDialog by remember { mutableStateOf(false) } // State to control the edit dialog
+    val coroutineScope = rememberCoroutineScope()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
     var price by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) } // State to toggle between text and search bar
     var searchQuery by remember { mutableStateOf("") }
@@ -92,7 +100,7 @@ fun CurrentCylinderDetailsUI(
                 backgroundColor = Color(0xFF2f80eb),
                 contentColor = Color.White,
                 navigationIcon = {
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {component.onEvent(CurrentCylinderDetailsScreenEvent.OnBackClick) }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
@@ -100,6 +108,10 @@ fun CurrentCylinderDetailsUI(
                     }
                 }
             )
+        },
+        snackbarHost = {
+            // Snackbar host to display messages
+            SnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
@@ -153,7 +165,7 @@ fun CurrentCylinderDetailsUI(
                                 fontSize = 16.sp // Slightly smaller font size
                             )
                             Text(
-                                text = volumeType,
+                                text = volumeType.replace(",","."),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp // Slightly smaller font size
                             )
@@ -193,20 +205,67 @@ fun CurrentCylinderDetailsUI(
                         }
 
                         // Second column: Dynamic fields (any other fields not in the first column)
-                        Column(modifier = Modifier.weight(1f)) { // Adjust weight for better alignment
-                            Row(modifier = Modifier.padding(vertical = 2.dp)) { // Reduced vertical padding
+                        Column(modifier = Modifier.weight(1f)) {
+
+                            // Adjust weight for better alignment
+                            // Inside the Column where Price is displayed
+                            Row(modifier = Modifier.padding(vertical = 2.dp)) {
                                 Text(
                                     text = "Price:",
-                                    modifier = Modifier.weight(1f), // Adjust weight to align with the first column
+                                    modifier = Modifier.weight(1f),
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp // Slightly smaller font size
+                                    fontSize = 14.sp
                                 )
                                 Text(
                                     text = "Rs. $price",
-                                    modifier = Modifier.weight(1f), // Equal weight for consistency
-                                    fontSize = 14.sp // Slightly smaller font size
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 14.sp
                                 )
                             }
+
+// Add the Edit button below the Price field
+                            Button(
+                                onClick = {showEditDialog=true} ,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp, bottom = 16.dp) // Add some spacing
+                                    .height(36.dp), // Small button height
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color(0xFF2f80eb) // Blue color
+                                )
+                            ) {
+                                Text(
+                                    text = "Edit",
+                                    color = Color.White,
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                            if(showEditDialog){
+                                EditCylinderDetailsDialog (
+                                    currentDetails = currentCylinderDetails,
+                                    onDismiss = { showEditDialog = false },
+                                    onSave={
+                                            updatedDetails ->
+                                        coroutineScope.launch{
+                                            val success = updateCylinderDetails(db, currentCylinderDetails["Serial Number"] ?: "", updatedDetails)
+                                            showEditDialog = false
+
+                                            if (success) {
+                                                // Show success Snackbar
+                                                snackbarHostState.showSnackbar("Cylinder details updated successfully!")
+                                            } else {
+                                                // Show failure Snackbar
+                                                snackbarHostState.showSnackbar("Failed to update cylinder details.")
+                                            }
+
+                                        }
+
+                                    }
+                                )
+                            }
+
+
                         }
                     }
 
@@ -601,5 +660,143 @@ fun parseCurrentlyIssuedToManually(issuedToString: String): IssuedToDetails? {
         IssuedToDetails(name, date, rate)
     } else {
         null // Return null if any field is missing
+    }
+}
+
+@Composable
+fun EditCylinderDetailsDialog(
+    currentDetails: Map<String, String>, // Current cylinder details
+    onDismiss: () -> Unit, // Callback to close the dialog
+    onSave: (Map<String, String>) -> Unit // Callback to save the edited details
+) {
+    var batchNumber by remember { mutableStateOf(currentDetails["Batch Number"] ?: "") }
+    var remarks by remember { mutableStateOf(currentDetails["Remarks"] ?: "") }
+    var status by remember { mutableStateOf(currentDetails["Status"] ?: "") }
+
+    // Dropdown state
+    var isStatusDropdownExpanded by remember { mutableStateOf(false) }
+    val statusOptions = listOf("Full", "Empty", "Repair", "At Plant", "Issued")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Cylinder Details", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Batch Number Field
+                OutlinedTextField(
+                    value = batchNumber,
+                    onValueChange = { batchNumber = it },
+                    label = { Text("Batch Number") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Remarks Field
+                OutlinedTextField(
+                    value = remarks,
+                    onValueChange = { remarks = it },
+                    label = { Text("Remarks") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Status Dropdown
+                Box(modifier = Modifier.fillMaxWidth().clickable { isStatusDropdownExpanded = true }) {
+                    // Wrap the OutlinedTextField in a Box and apply clickable to the Box
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isStatusDropdownExpanded = true } // Open dropdown on click
+                    ) {
+                        OutlinedTextField(
+                            value = status,
+                            onValueChange = {}, // Disable manual input
+                            label = { Text("Status") },
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = true // Make the field read-only
+                        )
+                    }
+
+                    // Dropdown Menu
+                    DropdownMenu(
+                        expanded = isStatusDropdownExpanded,
+                        onDismissRequest = { isStatusDropdownExpanded = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        statusOptions.forEach { option ->
+                            DropdownMenuItem(
+                                onClick = {
+                                    status = option // Update the selected status
+                                    isStatusDropdownExpanded = false // Close the dropdown
+                                }
+                            ) {
+                                Text(text = option)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    // Save the edited details
+                    val updatedDetails = mapOf(
+                        "Batch Number" to batchNumber,
+                        "Remarks" to remarks,
+                        "Status" to status
+                    )
+                    onSave(updatedDetails)
+                    onDismiss() // Close the dialog
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb))
+            ) {
+                Text("Save", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss // Close the dialog
+            ) {
+                Text("Cancel", color = Color(0xFF2f80eb))
+            }
+        }
+    )
+}
+
+private suspend fun updateCylinderDetails(db: FirebaseFirestore, serialNumber: String, updatedDetails: Map<String, String>): Boolean {
+    return try {
+        // Fetch the existing document
+        val document = db.collection("Cylinders")
+            .document("Cylinders")
+            .get()
+
+
+        if (document.exists) {
+            // Fetch the existing "CylinderDetails" array
+            val existingDetails = document.get("CylinderDetails") as? List<Map<String, String>> ?: emptyList()
+
+            // Find the current cylinder details and update them
+            val updatedCylinderDetails = existingDetails.map { details ->
+                if (details["Serial Number"] == serialNumber) {
+                    details + updatedDetails // Merge the updated details
+                } else {
+                    details
+                }
+            }
+
+            // Save the updated array back to Firestore
+            db.collection("Cylinders")
+                .document("Cylinders")
+                .set(mapOf("CylinderDetails" to updatedCylinderDetails))
+
+            true // Return true on success
+        } else {
+            false // Return false if the document does not exist
+        }
+    } catch (e: Exception) {
+        println("Error updating cylinder details: ${e.message}")
+        false // Return false on failure
     }
 }

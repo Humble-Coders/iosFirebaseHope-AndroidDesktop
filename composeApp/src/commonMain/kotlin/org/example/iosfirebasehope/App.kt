@@ -53,7 +53,7 @@ fun App(rootComponent: RootComponent, db: FirebaseFirestore){
                     cylinderDetailsList = instance.component.cylinderDetailsList,
                     status = instance.component.status, gasList = instance.component.gasList)
 
-                is VolumeTypeScreen -> VolumeTypeScreenUI(instance.component, cylinderDetailList = instance.component.cylinderDetailList,VolumeType=instance.component.volumeType)
+                is VolumeTypeScreen -> VolumeTypeScreenUI(instance.component, cylinderDetailList = instance.component.cylinderDetailList,VolumeType=instance.component.volumeType, gasId = instance.component.gasId)
 
                 is AllCylinderDetailsScreen -> AllCylinderDetailsScreenUI(instance.component, cylinderDetailsList = instance.component.cylinderDetailsList)
                 is CurrentCylinderDetailsScreen -> CurrentCylinderDetailsUI(component = instance.component, currentCylinderDetails = instance.component.currentCylinderDetails, db = db)

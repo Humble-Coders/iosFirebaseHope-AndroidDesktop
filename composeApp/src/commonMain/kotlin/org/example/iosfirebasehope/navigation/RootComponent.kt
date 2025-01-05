@@ -61,11 +61,12 @@ class RootComponent(
                 GasVolumeScreenComponent(
                     gasId = config.gasId,
                     componentContext = context,
-                    onGasCardClick = { volumeType, cylinderDetailList ->
+                    onGasCardClick = { volumeType, cylinderDetailList, gasId ->
                         navigation.pushNew(
                             Configuration.VolumeTypeScreen(
                                 cylinderDetailList,
-                                volumeType
+                                volumeType,
+                                gasId = config.gasId
                             )
                         )
                     },
@@ -99,6 +100,13 @@ class RootComponent(
                     gasList = config.gasList,
                     onBackClick = {
                         navigation.pop()
+                    },
+                    onCylinderClick = { currentCylinderDetails ->
+                        navigation.pushNew(
+                            Configuration.CurrentCylinderDetails(
+                                currentCylinderDetails = currentCylinderDetails
+                            )
+                        )
                     }
                 )
             )
@@ -109,6 +117,14 @@ class RootComponent(
                     volumeType = config.volumeType,
                     onBackClick = {
                         navigation.pop()
+                    },
+                    gasId = config.gasId,
+                    onCylinderClick = { currentCylinderDetails ->
+                        navigation.pushNew(
+                            Configuration.CurrentCylinderDetails(
+                                currentCylinderDetails = currentCylinderDetails
+                            )
+                        )
                     }
                 )
             )
@@ -119,11 +135,21 @@ class RootComponent(
                     onBackClick ={
                         navigation.pop()
                     },
+                    onCylinderClick = { currentCylinderDetails ->
+                        navigation.pushNew(
+                            Configuration.CurrentCylinderDetails(
+                                currentCylinderDetails = currentCylinderDetails
+                            )
+                        )
+                    }
                 )
             )
             is Configuration.CurrentCylinderDetails -> Child.CurrentCylinderDetailsScreen(
                 CurrentCylinderDetailsComponent(
-                    currentCylinderDetails = config.currentCylinderDetails
+                    currentCylinderDetails = config.currentCylinderDetails,
+                    onBackClick = {
+                        navigation.pop()
+                    }
                 )
             )
             is Configuration.BillScreen -> Child.BillScreen(
@@ -167,7 +193,8 @@ class RootComponent(
         @Serializable
         data class VolumeTypeScreen(
             val cylinderDetailsList: List<Map<String, String>>,
-            val volumeType: String
+            val volumeType: String,
+            val gasId: String
         ): Configuration()
 
         @Serializable
@@ -196,6 +223,8 @@ class RootComponent(
 
         @Serializable
         data object IssueNewCylinderScreen: Configuration()
+        companion object
 
     }
 }
+

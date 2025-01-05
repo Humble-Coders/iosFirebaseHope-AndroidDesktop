@@ -105,7 +105,7 @@ fun GasVolumeScreenUI(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(gasId) },
+                title = { Text(gasId.replace(",", ".")) },
                 backgroundColor = Color(0xFF2f80eb),
                 contentColor = Color.White,
                 navigationIcon = {
@@ -127,7 +127,7 @@ fun GasVolumeScreenUI(
                 horizontalArrangement = Arrangement.Center
             ) {
                 items(volumeStatusCounts) { volumeStatus ->
-                    VolumeCard(volumeStatus,cylinderDetailList, component )
+                    VolumeCard(volumeStatus,cylinderDetailList, component, gasId)
                 }
             }
             Row(
@@ -239,7 +239,7 @@ fun GasVolumeScreenUI(
 }
 
 @Composable
-fun VolumeCard(volumeStatus: VolumeStatusCounts,cylinderDetailsList: List<Map<String, String>>,component: GasVolumeScreenComponent) {
+fun VolumeCard(volumeStatus: VolumeStatusCounts,cylinderDetailsList: List<Map<String, String>>,component: GasVolumeScreenComponent, gasId: String = "") {
 
     val filteredList= cylinderDetailsList.filter { cylinder ->
         cylinder["Volume Type"] == volumeStatus.volume
@@ -252,7 +252,7 @@ fun VolumeCard(volumeStatus: VolumeStatusCounts,cylinderDetailsList: List<Map<St
             .padding(end = 4.dp, start = 4.dp)
             .clickable(onClick = {
                 // Handle click
-                component.onEvent(GasVolumeScreenEvent.onGasCardClick(volumeStatus.volume, filteredList))
+                component.onEvent(GasVolumeScreenEvent.onGasCardClick(volumeStatus.volume, filteredList, gasId))
             }),
         elevation = 4.dp,
         border = BorderStroke(1.dp, Color(0xFF2f80eb)) // Custom border color
@@ -263,7 +263,7 @@ fun VolumeCard(volumeStatus: VolumeStatusCounts,cylinderDetailsList: List<Map<St
              // Add vertical padding to the entire column
         ) {
             Text(
-                text = volumeStatus.volume,
+                text = volumeStatus.volume.replace(",", "."),
                 color = Color.Black,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
@@ -362,7 +362,7 @@ fun CylinderDetailsCard2(
                                     modifier = Modifier.weight(1f)
                                 )
                                 Text(
-                                    text = value,
+                                    text = value.replace(",", "."),
                                     modifier = Modifier.weight(1f)
                                 )
                             }

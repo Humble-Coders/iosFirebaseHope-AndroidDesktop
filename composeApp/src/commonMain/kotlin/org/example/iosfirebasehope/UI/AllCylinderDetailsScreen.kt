@@ -27,6 +27,7 @@ import org.example.iosfirebasehope.navigation.components.AllCylinderDetailsScree
 import org.example.iosfirebasehope.navigation.components.CylinderStatusScreenComponent
 import org.example.iosfirebasehope.navigation.events.AllCylinderDetailsScreenEvent
 import org.example.iosfirebasehope.navigation.events.CylinderStatusScreenEvent
+import org.example.iosfirebasehope.navigation.events.GasVolumeScreenEvent
 
 @Composable
 fun AllCylinderDetailsScreenUI(
@@ -109,32 +110,34 @@ fun AllCylinderDetailsScreenUI(
             }
 
             // Display filtered list of cylinders
-            CylinderList2( cylinderDetailsList = filteredCylinders, modifier = Modifier.padding(innerPadding))
+            CylinderList2( cylinderDetailsList = filteredCylinders, modifier = Modifier.padding(innerPadding), component = component)
         }
     }
 }
 
 @Composable
-fun CylinderList2( cylinderDetailsList: List<Map<String, String>>, modifier: Modifier = Modifier) {
+fun CylinderList2( cylinderDetailsList: List<Map<String, String>>, modifier: Modifier = Modifier, component: AllCylinderDetailsScreenComponent) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
         items(cylinderDetailsList) { cylinder ->
-            CylinderDetailsCard3(listOf(cylinder))
+            CylinderDetailsCard3(listOf(cylinder), component = component)
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-fun CylinderDetailsCard3(cylinderDetailsList: List<Map<String, String>>) {
+fun CylinderDetailsCard3(cylinderDetailsList: List<Map<String, String>>, component: AllCylinderDetailsScreenComponent) {
+    val currentCylinderDetails = cylinderDetailsList.firstOrNull() ?: return
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable(onClick = { /* Handle click */ }),
+            .clickable(onClick = { component.onEvent(AllCylinderDetailsScreenEvent.OnCylinderClick(currentCylinderDetails)) }),
         elevation = 4.dp,
         border = BorderStroke(1.dp, Color(0xFF2f80eb)) // Custom border color
     ) {
@@ -162,25 +165,33 @@ fun CylinderDetailsCard3(cylinderDetailsList: List<Map<String, String>>) {
                     }
                     Spacer(modifier = Modifier.width(16.dp))
 
+                    val orderedKeys = listOf(
+                        "Serial Number",
+                        "Batch Number",
+                        "Gas Type",
+                        "Volume Type",
+                        "Status",
+                        "Remarks"
+                    )
+
                     Column {
-                        details.filterKeys { key ->
-                            key != "Previous Customers"
-                        }.forEach { (key, value) ->
-                            Row(modifier = Modifier.padding(vertical = 2.dp)) {
-                                Text(
-                                    text = "$key: ",
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = value,
-                                    modifier = Modifier.weight(1f)
-                                )
+                        orderedKeys.forEach { key ->
+                            details[key]?.let { value ->
+                                Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                                    Text(
+                                        text = "$key: ",
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = value.replace(",", "."), // Replace commas with dots
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }
                 }
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
             }
         }
     }

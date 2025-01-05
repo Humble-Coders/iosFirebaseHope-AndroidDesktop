@@ -9,10 +9,12 @@ class CylinderStatusScreenComponent (
     val cylinderDetailsList:List<Map<String,String>>,
     val gasList: List<String>,
     componentContext: ComponentContext,
-    private val onBackClick: () -> Unit
+    private val onBackClick: () -> Unit,
+    private val onCylinderClick: (Map<String, String>) -> Unit
 ){
     fun onEvent(event: CylinderStatusScreenEvent ){
         when(event){
             is CylinderStatusScreenEvent.onBackClick -> onBackClick()
+            is CylinderStatusScreenEvent.OnCylinderClick -> onCylinderClick(event.currentCylinderDetails)
         }
 }}

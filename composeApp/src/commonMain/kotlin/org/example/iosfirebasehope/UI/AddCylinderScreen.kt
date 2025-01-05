@@ -103,11 +103,13 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                 val document = db.collection("Gases").document(gas).get()
                                 volumeTypes.clear()
                                 if (gas == "LPG") {
-                                    val volumesMap = document.get("Volumes") as? Map<String, Int>
-                                    volumesMap?.let {
+                                    // Fetch Volume Types from VolumesAndSP map
+                                    val volumesAndSP = document.get("VolumesAndSP") as? Map<String, Int>
+                                    volumesAndSP?.let {
                                         volumeTypes.addAll(it.keys.map { volume -> volume.replace(",", ".") })
                                     }
                                 } else {
+                                    // Fetch Volume Types from Volumes map for non-LPG gases
                                     val volumesMap = document.get("VolumesAndSP") as? Map<String, Int>
                                     volumesMap?.let {
                                         volumeTypes.addAll(it.keys.map { volume -> volume.replace(",", ".") })
@@ -137,7 +139,6 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                             }
                         }
                     )
-
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -259,8 +260,9 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                         onClick = {
                             coroutineScope.launch {
                                 if (selectedGasType == "LPG") {
-                                    val volumesMap = db.collection("Gases").document("LPG").get().get("Volumes") as? Map<String, Int>
-                                    val lastSerialNumber = volumesMap?.get(selectedVolumeType) ?: 0
+                                    // Fetch LastSerial from LPG collection
+                                    val lpgDocument = db.collection("Gases").document("LPG").get()
+                                    val lastSerial = lpgDocument.get("LastSerial") as? Int ?: 0
                                     val quantityInt = quantity.toIntOrNull() ?: 0
 
                                     if (quantityInt <= 0) {
@@ -268,31 +270,36 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                         return@launch
                                     }
 
+                                    // Create cylinders with updated serial numbers
                                     val cylinders = (1..quantityInt).map { i ->
                                         hashMapOf(
-                                            "Serial Number" to (lastSerialNumber + i).toString(),
+                                            "Serial Number" to (lastSerial + i).toString(),
                                             "Batch Number" to batchNumber,
                                             "Gas Type" to selectedGasType,
-                                            "Volume Type" to selectedVolumeType, // Treat as a string
+                                            "Volume Type" to selectedVolumeType, // Treat as string
                                             "Status" to selectedStatus,
                                             "Remarks" to remarks,
-                                            "Previous Customers" to emptyList<Map<String, String>>(), // Correct initialization of an empty list
+                                            "Previous Customers" to emptyList<Map<String, String>>(),
+                                            "Return Date" to "", // Use an empty string for a date field
+                                            "Currently Issued To" to emptyMap<String, String>() // Correct initialization
                                         )
-
                                     }
 
+                                    // Add cylinders to Cylinders collection
                                     db.collection("Cylinders").document("Cylinders").update(
                                         mapOf("CylinderDetails" to FieldValue.arrayUnion(*cylinders.toTypedArray()))
                                     )
 
+                                    // Update LastSerial in LPG collection
                                     db.collection("Gases").document("LPG").update(
-                                        "Volumes.$selectedVolumeType" to (lastSerialNumber + quantityInt)
+                                        "LastSerial" to (lastSerial + quantityInt)
                                     )
 
                                     scaffoldState.snackbarHostState.showSnackbar(
                                         "$quantityInt cylinders added successfully."
                                     )
                                 } else {
+                                    // Non-LPG logic remains unchanged
                                     val cylinderDetails = hashMapOf(
                                         "Serial Number" to serialNumber,
                                         "Batch Number" to batchNumber,
@@ -300,9 +307,9 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                         "Volume Type" to selectedVolumeType, // Treat as string
                                         "Status" to selectedStatus,
                                         "Remarks" to remarks,
-                                        "Previous Customers" to emptyList<Map<String, String>>(), // Correctly defining an empty list of maps
+                                        "Previous Customers" to emptyList<Map<String, String>>(),
                                         "Return Date" to "", // Use an empty string for a date field
-                                        "Currently Issued To" to emptyMap<String, String>() // Correct initialization of an empty map
+                                        "Currently Issued To" to emptyMap<String, String>() // Correct initialization
                                     )
                                     val documentRef = db.collection("Cylinders").document("Cylinders")
                                     val documentSnapshot = documentRef.get()
