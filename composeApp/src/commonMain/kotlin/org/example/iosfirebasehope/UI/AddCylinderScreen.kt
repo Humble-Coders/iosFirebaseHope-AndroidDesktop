@@ -1,4 +1,3 @@
-//final screen 
 package org.example.iosfirebasehope.UI
 
 import androidx.compose.foundation.background
@@ -124,9 +123,9 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                     // Volume Type Dropdown
                     Text("Volume Type", color = Color(0xFF2f80eb))
                     PrettyDropdownMenu(
-                        selectedItem = selectedVolumeType?.replace(",", ".") ?: "Select Volume Type", // Display as `.` for readability
+                        selectedItem = selectedVolumeType?.replace(",", ".") ?: "Select Volume Type",
                         items = volumeTypes,
-                        onItemSelected = { selectedVolumeType = it.replace(".", ",") }, // Convert back to `,` for database usage
+                        onItemSelected = { selectedVolumeType = it.replace(".", ",") },
                         onDropdownExpanded = { expanded -> volumeTypeDropdownExpanded = expanded },
                         dropdownExpanded = volumeTypeDropdownExpanded,
                         fetchDataOnItemClick = {
@@ -202,7 +201,7 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                         ),
                         value = batchNumber,
                         onValueChange = { batchNumber = it },
-                        enabled = selectedGasType != "LPG", // Disable if LPG is selected
+                        enabled = selectedGasType != "LPG",
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(if (selectedGasType == "LPG") Color.LightGray else Color.White, RoundedCornerShape(8.dp))
@@ -240,7 +239,7 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                         ),
                         value = remarks,
                         onValueChange = { remarks = it },
-                        enabled = selectedGasType != "LPG", // Disable if LPG is selected
+                        enabled = selectedGasType != "LPG",
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(if (selectedGasType == "LPG") Color.LightGray else Color.White, RoundedCornerShape(8.dp))
@@ -276,12 +275,10 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                             "Serial Number" to (lastSerial + i).toString(),
                                             "Batch Number" to batchNumber,
                                             "Gas Type" to selectedGasType,
-                                            "Volume Type" to selectedVolumeType, // Treat as string
+                                            "Volume Type" to selectedVolumeType,
                                             "Status" to selectedStatus,
                                             "Remarks" to remarks,
-                                            "Previous Customers" to emptyList<Map<String, String>>(),
-                                            "Return Date" to "", // Use an empty string for a date field
-                                            "Currently Issued To" to emptyMap<String, String>() // Correct initialization
+                                            "Return Date" to ""
                                         )
                                     }
 
@@ -295,21 +292,37 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                         "LastSerial" to (lastSerial + quantityInt)
                                     )
 
+                                    // Create "Customers" document and nested collections for each cylinder
+                                    cylinders.forEach { cylinder ->
+                                        val serialNumber = cylinder["Serial Number"] ?: ""
+                                        if (serialNumber.isNotEmpty()) {
+                                            val customersCollection = db.collection("Cylinders")
+                                                .document("Customers")
+                                                .collection(serialNumber)
+
+                                            // Create "Previous Customers" document with an empty array
+                                            customersCollection.document("Previous Customers")
+                                                .set(mapOf("customers" to emptyList<Map<String, String>>()))
+
+                                            // Create "Currently Issued To" document with empty fields
+                                            customersCollection.document("Currently Issued To")
+                                                .set(mapOf("name" to "", "date" to "", "price" to ""))
+                                        }
+                                    }
+
                                     scaffoldState.snackbarHostState.showSnackbar(
                                         "$quantityInt cylinders added successfully."
                                     )
                                 } else {
-                                    // Non-LPG logic remains unchanged
+                                    // Non-LPG logic
                                     val cylinderDetails = hashMapOf(
                                         "Serial Number" to serialNumber,
                                         "Batch Number" to batchNumber,
                                         "Gas Type" to selectedGasType,
-                                        "Volume Type" to selectedVolumeType, // Treat as string
+                                        "Volume Type" to selectedVolumeType,
                                         "Status" to selectedStatus,
                                         "Remarks" to remarks,
-                                        "Previous Customers" to emptyList<Map<String, String>>(),
-                                        "Return Date" to "", // Use an empty string for a date field
-                                        "Currently Issued To" to emptyMap<String, String>() // Correct initialization
+                                        "Return Date" to ""
                                     )
                                     val documentRef = db.collection("Cylinders").document("Cylinders")
                                     val documentSnapshot = documentRef.get()
@@ -323,6 +336,21 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                                 mapOf("CylinderDetails" to FieldValue.arrayUnion(cylinderDetails))
                                             )
 
+                                            // Create "Customers" document and nested collections for the cylinder
+                                            if (serialNumber.isNotEmpty()) {
+                                                val customersCollection = db.collection("Cylinders")
+                                                    .document("Customers")
+                                                    .collection(serialNumber)
+
+                                                // Create "Previous Customers" document with an empty array
+                                                customersCollection.document("Previous Customers")
+                                                    .set(mapOf("customers" to emptyList<Map<String, String>>()))
+
+                                                // Create "Currently Issued To" document with empty fields
+                                                customersCollection.document("Currently Issued To")
+                                                    .set(mapOf("name" to "", "date" to "", "price" to ""))
+                                            }
+
                                             scaffoldState.snackbarHostState.showSnackbar(
                                                 "Cylinder Successfully Added."
                                             )
@@ -335,6 +363,21 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                         documentRef.set(
                                             mapOf("CylinderDetails" to listOf(cylinderDetails))
                                         )
+
+                                        // Create "Customers" document and nested collections for the cylinder
+                                        if (serialNumber.isNotEmpty()) {
+                                            val customersCollection = db.collection("Cylinders")
+                                                .document("Customers")
+                                                .collection(serialNumber)
+
+                                            // Create "Previous Customers" document with an empty array
+                                            customersCollection.document("Previous Customers")
+                                                .set(mapOf("customers" to emptyList<Map<String, String>>()))
+
+                                            // Create "Currently Issued To" document with empty fields
+                                            customersCollection.document("Currently Issued To")
+                                                .set(mapOf("name" to "", "date" to "", "price" to ""))
+                                        }
                                     }
                                 }
 

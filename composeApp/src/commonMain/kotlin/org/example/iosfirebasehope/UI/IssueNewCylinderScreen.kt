@@ -437,8 +437,24 @@ data class IssuedCylinder(
 
 // Firestore Functions
 suspend fun fetchCustomers(db: FirebaseFirestore): List<String> {
-    return db.collection("Customers").get().documents.map { it.id }
+    return try {
+        // Navigate to the target document
+        val customerDetailsRef = db.collection("Customers")
+            .document("Names")
+            .get()
+
+        // Extract the CustomerDetails array from the document
+        val customerDetails = customerDetailsRef.get("CustomerDetails") as? List<Map<String, String>> ?: emptyList()
+
+        // Map the "Name" fields from each map in the array
+        customerDetails.mapNotNull { it["Name"] }
+    } catch (e: Exception) {
+        println("Error fetching customers: ${e.message}")
+        emptyList()
+    }
 }
+
+
 
 suspend fun checkoutCylinders(
     db: FirebaseFirestore,
@@ -449,10 +465,76 @@ suspend fun checkoutCylinders(
 ): Boolean {
     println("checkoutCylinders: $customerName, $issueDate, $returnDays, $issuedCylinders, $db")
 
+    // Validate inputs
     if (customerName == null || issueDate == null) return false
-    return true
-}
 
+    try {
+        // Part 1: Update Details array
+        val customerRef = db.collection("Customers")
+            .document("Issued Cylinders")
+            .collection("Names")
+            .document(customerName)
+
+        val snapshot = customerRef.get()
+        val existingDetails = if (snapshot.exists) {
+            snapshot.get("Details") as? List<String> ?: emptyList()
+        } else {
+            emptyList()
+        }
+
+        val newSerialNumbers = issuedCylinders.map { it.serialNumber }
+        val updatedDetails = existingDetails + newSerialNumbers
+        customerRef.set(mapOf("Details" to updatedDetails))
+
+        // Part 2: Add transaction data
+        val transactionsRef = db.collection("Customers")
+            .document("Transactions")
+            .collection("Names")
+            .document(customerName)
+
+        // Create the document if it doesn't exist
+        if (!transactionsRef.get().exists) {
+            transactionsRef.set(emptyMap<String, Any>())
+        }
+
+        // Get the current date and time
+        val currentDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val dateTimeString = "${currentDateTime.date}_${currentDateTime.hour}:${currentDateTime.minute}:${currentDateTime.second}"
+
+        val transactionCollectionRef = transactionsRef.collection(dateTimeString)
+
+        // Add the required documents
+        transactionCollectionRef.document("Cash").set(mapOf("Amount" to ""))
+        transactionCollectionRef.document("Credit").set(mapOf("Amount" to ""))
+        transactionCollectionRef.document("Cylinders Returned").set(mapOf("CylindersReturned" to listOf<String>()))
+
+        // Retrieve existing CylindersIssued array if present
+        val cylindersIssuedRef = transactionCollectionRef.document("Cylinders Issued")
+        val cylindersSnapshot = cylindersIssuedRef.get()
+        val existingCylindersIssued = if (cylindersSnapshot.exists) {
+            cylindersSnapshot.get("CylindersIssued") as? List<Map<String, Any>> ?: emptyList()
+        } else {
+            emptyList()
+        }
+
+        // Prepare new CylindersIssued entries
+        val newCylindersIssued = issuedCylinders.map {
+            mapOf(
+                "Serial Number" to it.serialNumber,
+                "Total Price" to it.totalPrice
+            )
+        }
+
+        // Combine existing and new CylindersIssued
+        val updatedCylindersIssued = existingCylindersIssued + newCylindersIssued
+        cylindersIssuedRef.set(mapOf("CylindersIssued" to updatedCylindersIssued))
+
+        return true
+    } catch (e: Exception) {
+        println("Error in checkoutCylinders: ${e.message}")
+        return false
+    }
+}
 
 
 
@@ -608,29 +690,32 @@ suspend fun saveCustomerToFirestore(
 
 
         // Create a collection with the current date-time in Transactions
-        val currentDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        val dateTimeString = "${currentDateTime.date}_${currentDateTime.hour}:${currentDateTime.minute}:${currentDateTime.second}"
-
+//        val currentDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+//        val dateTimeString = "${currentDateTime.date}_${currentDateTime.hour}:${currentDateTime.minute}:${currentDateTime.second}"
+//
         val transactionsRef = db.collection("Customers")
             .document("Transactions")
             .collection("Names")
             .document(customerName)
-            .collection(dateTimeString)
+//            .collection(dateTimeString)
 
-        transactionsRef.document("Cylinders Issued")
-            .set(mapOf("Serial Numbers" to listOf<String>()))
-
-
-        transactionsRef.document("Cylinders Returned")
-            .set(mapOf("Serial Numbers" to listOf<String>()))
-
-
-        transactionsRef.document("Cash")
-            .set(mapOf("Amount" to ""))
-
-
-        transactionsRef.document("Credit")
-            .set(mapOf("Amount" to ""))
+        // Create an empty document for the customerName
+        transactionsRef.set(emptyMap<String, Any>())
+//
+//        transactionsRef.document("Cylinders Issued")
+//            .set(mapOf("Serial Numbers" to listOf<String>()))
+//
+//
+//        transactionsRef.document("Cylinders Returned")
+//            .set(mapOf("Serial Numbers" to listOf<String>()))
+//
+//
+//        transactionsRef.document("Cash")
+//            .set(mapOf("Amount" to ""))
+//
+//
+//        transactionsRef.document("Credit")
+//            .set(mapOf("Amount" to ""))
 
 
         // Add new customer entry to the Names document
