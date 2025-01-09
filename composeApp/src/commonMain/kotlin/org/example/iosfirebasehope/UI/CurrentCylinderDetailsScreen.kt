@@ -183,7 +183,50 @@ fun CurrentCylinderDetailsUI(
                     ) {
                         // First column: Fixed fields (Batch Number, Status, Remarks)
                         Column(modifier = Modifier.weight(1.2f)) { // Adjust weight to reduce spacing
-                            listOf("Batch Number", "Status", "Remarks").forEach { key ->
+                            listOf("Batch Number", "Status").forEach { key ->
+                                val value = currentCylinderDetails[key]
+                                val displayName =
+                                    keyDisplayNames[key] ?: key // Use the display name from the map
+                                if (!value.isNullOrEmpty()) {
+                                    Row(modifier = Modifier.padding(vertical = 2.dp)) { // Reduced vertical padding
+                                        Text(
+                                            text = "$displayName:", // Display the mapped name
+                                            modifier = Modifier.weight(1f), // Adjust weight to shrink the gap
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp // Slightly smaller font size
+                                        )
+                                        Text(
+                                            text = value,
+                                            modifier = Modifier.weight(1f), // Equal weight for both columns
+                                            fontSize = 14.sp // Slightly smaller font size
+                                        )
+                                    }
+                                }
+                            }
+
+                                    Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                                        Text(
+                                            text = "Price:",
+                                            modifier = Modifier.weight(1f),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        Text(
+                                            text = "Rs. $price",
+                                            modifier = Modifier.weight(1f),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+
+
+                        }
+
+                        // Second column: Dynamic fields (any other fields not in the first column)
+                        Column(modifier = Modifier.weight(1f)) {
+
+                            // Adjust weight for better alignment
+                            // Inside the Column where Price is displayed
+                            listOf("Remarks").forEach { key ->
                                 val value = currentCylinderDetails[key]
                                 val displayName = keyDisplayNames[key] ?: key // Use the display name from the map
                                 if (!value.isNullOrEmpty()) {
@@ -202,28 +245,8 @@ fun CurrentCylinderDetailsUI(
                                     }
                                 }
                             }
-                        }
 
-                        // Second column: Dynamic fields (any other fields not in the first column)
-                        Column(modifier = Modifier.weight(1f)) {
 
-                            // Adjust weight for better alignment
-                            // Inside the Column where Price is displayed
-                            Row(modifier = Modifier.padding(vertical = 2.dp)) {
-                                Text(
-                                    text = "Price:",
-                                    modifier = Modifier.weight(1f),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-                                Text(
-                                    text = "Rs. $price",
-                                    modifier = Modifier.weight(1f),
-                                    fontSize = 14.sp
-                                )
-                            }
-
-// Add the Edit button below the Price field
                             Button(
                                 onClick = {showEditDialog=true} ,
                                 modifier = Modifier
