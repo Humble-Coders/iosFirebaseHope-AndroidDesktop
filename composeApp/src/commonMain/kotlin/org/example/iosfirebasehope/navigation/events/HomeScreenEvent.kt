@@ -8,4 +8,6 @@ interface HomeScreenEvent {
     data class OnStatusClick(val cylinderDetailList: List<Map<String, String>>,val status: String, val gasList: List<String>) : HomeScreenEvent
     data class OnAllCylinderDetailsClick(val cylinderDetailList: List<Map<String, String>>) : HomeScreenEvent
     data object OnBillClick : HomeScreenEvent
+    data object onInventoryClick : HomeScreenEvent
+    data class OnAllCustomerClick(val cylinderDetailList: List<Map<String, String>> ) : HomeScreenEvent
 }

@@ -1,6 +1,6 @@
 package org.example.iosfirebasehope
 
-import CurrentCylinderDetailsUI
+
 import GasVolumeScreenUI
 
 import androidx.compose.material.*
@@ -11,21 +11,35 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stac
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import org.example.iosfirebasehope.UI.AddCylinderScreenUI
+import org.example.iosfirebasehope.UI.AllCustomersScreenUI
 import org.example.iosfirebasehope.UI.AllCylinderDetailsScreenUI
 import org.example.iosfirebasehope.UI.BillScreenUI
+import org.example.iosfirebasehope.UI.CurrentCylinderDetailsUI
+import org.example.iosfirebasehope.UI.CustomerDetailsScreenUI
 import org.example.iosfirebasehope.UI.CylinderStatusScreenUI
 import org.example.iosfirebasehope.UI.HomeScreenUI
+import org.example.iosfirebasehope.UI.InventoryScreenUI
 import org.example.iosfirebasehope.UI.IssueNewCylinderScreenUI
+import org.example.iosfirebasehope.UI.NewOrChooseCustomerScreenUI
 import org.example.iosfirebasehope.UI.VolumeTypeScreenUI
+import org.example.iosfirebasehope.navigation.Child.AddCylinderScreen
+import org.example.iosfirebasehope.navigation.Child.AllCustomerScreen
+import org.example.iosfirebasehope.navigation.Child.AllCylinderDetailsScreen
+import org.example.iosfirebasehope.navigation.Child.BillScreen
+import org.example.iosfirebasehope.navigation.Child.CurrentCylinderDetailsScreen
+import org.example.iosfirebasehope.navigation.Child.CustomerDetailsScreen
+import org.example.iosfirebasehope.navigation.Child.CylinderStatusScreen
+import org.example.iosfirebasehope.navigation.Child.GasVolumeScreen
+import org.example.iosfirebasehope.navigation.Child.HomeScreen
+import org.example.iosfirebasehope.navigation.Child.InventoryScreen
+import org.example.iosfirebasehope.navigation.Child.IssueNewCylinderScreen
+import org.example.iosfirebasehope.navigation.Child.NewOrChooseCustomerScreen
+import org.example.iosfirebasehope.navigation.Child.VolumeTypeScreen
+
+
 import org.example.iosfirebasehope.navigation.RootComponent
-import org.example.iosfirebasehope.navigation.RootComponent.Child.AddCylinderScreen
-import org.example.iosfirebasehope.navigation.RootComponent.Child.AllCylinderDetailsScreen
-import org.example.iosfirebasehope.navigation.RootComponent.Child.CurrentCylinderDetailsScreen
-import org.example.iosfirebasehope.navigation.RootComponent.Child.GasVolumeScreen
-import org.example.iosfirebasehope.navigation.RootComponent.Child.HomeScreen
-import org.example.iosfirebasehope.navigation.RootComponent.Child.CylinderStatusScreen
-import org.example.iosfirebasehope.navigation.RootComponent.Child.VolumeTypeScreen
-import org.example.iosfirebasehope.navigation.RootComponent.Child.BillScreen
+
+
 
 
 @Composable
@@ -59,7 +73,11 @@ fun App(rootComponent: RootComponent, db: FirebaseFirestore){
                 is AllCylinderDetailsScreen -> AllCylinderDetailsScreenUI(instance.component, cylinderDetailsList = instance.component.cylinderDetailsList)
                 is CurrentCylinderDetailsScreen -> CurrentCylinderDetailsUI(component = instance.component, currentCylinderDetails = instance.component.currentCylinderDetails, db = db)
                 is BillScreen -> BillScreenUI(instance.component, db)
-                is RootComponent.Child.IssueNewCylinderScreen -> IssueNewCylinderScreenUI(instance.component, db)
+                is IssueNewCylinderScreen -> IssueNewCylinderScreenUI(instance.component, db)
+                is NewOrChooseCustomerScreen -> NewOrChooseCustomerScreenUI(instance.component, db)
+                is InventoryScreen -> InventoryScreenUI(instance.component, db)
+                is AllCustomerScreen -> AllCustomersScreenUI(instance.component, db, instance.component.cylinderDetailsList)
+                is CustomerDetailsScreen -> CustomerDetailsScreenUI(instance.component.customerDetails,instance.component, instance.component.cylinderDetailsList,db)
             }
         }
     }

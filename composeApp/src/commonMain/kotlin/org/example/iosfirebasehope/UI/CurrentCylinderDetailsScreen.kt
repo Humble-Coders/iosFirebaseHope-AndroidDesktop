@@ -1,3 +1,5 @@
+package org.example.iosfirebasehope.UI
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -10,7 +12,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -20,17 +24,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.gitlive.firebase.firestore.FirebaseFirestore
-import org.example.iosfirebasehope.UI.getGasColor
-import org.example.iosfirebasehope.UI.getGasSymbol
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.VisualTransformation
 import kotlinx.coroutines.launch
 import org.example.iosfirebasehope.navigation.components.CurrentCylinderDetailsComponent
 import org.example.iosfirebasehope.navigation.events.CurrentCylinderDetailsScreenEvent
@@ -41,23 +41,44 @@ fun CurrentCylinderDetailsUI(
     component: CurrentCylinderDetailsComponent,
     db: FirebaseFirestore // FirebaseFirestore instance for data fetching
 ) {
-
     var showEditDialog by remember { mutableStateOf(false) } // State to control the edit dialog
     val coroutineScope = rememberCoroutineScope()
-
     val snackbarHostState = remember { SnackbarHostState() }
 
     var price by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) } // State to toggle between text and search bar
     var searchQuery by remember { mutableStateOf("") }
 
-    // Parse the "Previous Customers" field manually
-    val previousCustomers = currentCylinderDetails["Previous Customers"]?.let {
-        parsePreviousCustomersManually(it)
-    } ?: emptyList()
+    // State for Currently Issued To and Previous Customers
+    var currentlyIssuedTo by remember { mutableStateOf<Map<String, String>?>(null) }
+    var previousCustomers by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
 
-    val currentlyIssuedTo = currentCylinderDetails["Currently Issued To"]?.let {
-        parseCurrentlyIssuedToManually(it)
+    // Fetch Currently Issued To and Previous Customers on launch
+    LaunchedEffect(currentCylinderDetails["Serial Number"]) {
+        val serialNumber = currentCylinderDetails["Serial Number"] ?: return@LaunchedEffect
+
+        // Fetch Currently Issued To
+        val currentlyIssuedToDoc = db.collection("Cylinders")
+            .document("Customers")
+            .collection(serialNumber)
+            .document("Currently Issued To")
+            .get()
+
+        if (currentlyIssuedToDoc.exists) {
+            currentlyIssuedTo = currentlyIssuedToDoc.data() as? Map<String, String>
+        }
+
+        // Fetch Previous Customers
+        val previousCustomersDoc = db.collection("Cylinders")
+            .document("Customers")
+            .collection(serialNumber)
+            .document("Previous Customers")
+            .get()
+
+        if (previousCustomersDoc.exists) {
+            val customersArray = previousCustomersDoc.get("customers") as? List<Map<String, String>>
+            previousCustomers = customersArray ?: emptyList()
+        }
     }
 
     // Filter customers based on search query
@@ -66,10 +87,11 @@ fun CurrentCylinderDetailsUI(
             previousCustomers
         } else {
             previousCustomers.filter { customer ->
-                customer.name.contains(searchQuery, ignoreCase = true)
+                customer["name"]?.contains(searchQuery, ignoreCase = true) == true
             }
         }
     }
+
     val keyDisplayNames = mapOf(
         "Batch Number" to "Batch",
         "Status" to "Status",
@@ -100,7 +122,7 @@ fun CurrentCylinderDetailsUI(
                 backgroundColor = Color(0xFF2f80eb),
                 contentColor = Color.White,
                 navigationIcon = {
-                    IconButton(onClick = {component.onEvent(CurrentCylinderDetailsScreenEvent.OnBackClick) }) {
+                    IconButton(onClick = { component.onEvent(CurrentCylinderDetailsScreenEvent.OnBackClick) }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
@@ -165,7 +187,7 @@ fun CurrentCylinderDetailsUI(
                                 fontSize = 16.sp // Slightly smaller font size
                             )
                             Text(
-                                text = volumeType.replace(",","."),
+                                text = volumeType.replace(",", "."),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp // Slightly smaller font size
                             )
@@ -204,28 +226,23 @@ fun CurrentCylinderDetailsUI(
                                 }
                             }
 
-                                    Row(modifier = Modifier.padding(vertical = 2.dp)) {
-                                        Text(
-                                            text = "Price:",
-                                            modifier = Modifier.weight(1f),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
-                                        )
-                                        Text(
-                                            text = "Rs. $price",
-                                            modifier = Modifier.weight(1f),
-                                            fontSize = 14.sp
-                                        )
-                                    }
-
-
+                            Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                                Text(
+                                    text = "Price:",
+                                    modifier = Modifier.weight(1f),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "Rs. $price",
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
 
                         // Second column: Dynamic fields (any other fields not in the first column)
                         Column(modifier = Modifier.weight(1f)) {
-
-                            // Adjust weight for better alignment
-                            // Inside the Column where Price is displayed
                             listOf("Remarks").forEach { key ->
                                 val value = currentCylinderDetails[key]
                                 val displayName = keyDisplayNames[key] ?: key // Use the display name from the map
@@ -246,9 +263,8 @@ fun CurrentCylinderDetailsUI(
                                 }
                             }
 
-
                             Button(
-                                onClick = {showEditDialog=true} ,
+                                onClick = { showEditDialog = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 8.dp, bottom = 16.dp) // Add some spacing
@@ -264,14 +280,17 @@ fun CurrentCylinderDetailsUI(
                                 )
                             }
 
-                            if(showEditDialog){
-                                EditCylinderDetailsDialog (
+                            if (showEditDialog) {
+                                EditCylinderDetailsDialog(
                                     currentDetails = currentCylinderDetails,
                                     onDismiss = { showEditDialog = false },
-                                    onSave={
-                                            updatedDetails ->
-                                        coroutineScope.launch{
-                                            val success = updateCylinderDetails(db, currentCylinderDetails["Serial Number"] ?: "", updatedDetails)
+                                    onSave = { updatedDetails ->
+                                        coroutineScope.launch {
+                                            val success = updateCylinderDetails(
+                                                db,
+                                                currentCylinderDetails["Serial Number"] ?: "",
+                                                updatedDetails
+                                            )
                                             showEditDialog = false
 
                                             if (success) {
@@ -281,23 +300,16 @@ fun CurrentCylinderDetailsUI(
                                                 // Show failure Snackbar
                                                 snackbarHostState.showSnackbar("Failed to update cylinder details.")
                                             }
-
                                         }
-
                                     }
                                 )
                             }
-
-
                         }
                     }
-
                 }
             }
 
             GlowingIconCard(currentlyIssuedTo = currentlyIssuedTo, currentCylinderDetails)
-
-//            Spacer(modifier = Modifier.height(12.dp))
 
             // Previous Customers Card (always visible)
             Card(
@@ -315,8 +327,6 @@ fun CurrentCylinderDetailsUI(
                         onSearchQueryChange = { searchQuery = it },
                         onSearchActiveChange = { isSearchActive = it }
                     )
-
-
 
                     // LazyColumn for previous customers
                     LazyColumn {
@@ -424,10 +434,8 @@ private fun SearchHeader(
     }
 }
 
-
-
 @Composable
-fun GlowingIconCard(currentlyIssuedTo: IssuedToDetails?, currentCylinderDetails: Map<String, String>) {
+fun GlowingIconCard(currentlyIssuedTo: Map<String, String>?, currentCylinderDetails: Map<String, String>) {
     val infiniteTransition = rememberInfiniteTransition()
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.5f,
@@ -477,7 +485,7 @@ fun GlowingIconCard(currentlyIssuedTo: IssuedToDetails?, currentCylinderDetails:
                             )
                         }
                         Text(
-                            text = currentlyIssuedTo.name,
+                            text = currentlyIssuedTo["name"] ?: "",
                             fontSize = 14.sp,
                             color = Color.Black
                         )
@@ -496,7 +504,7 @@ fun GlowingIconCard(currentlyIssuedTo: IssuedToDetails?, currentCylinderDetails:
                             )
                         }
                         Text(
-                            text = currentlyIssuedTo.date,
+                            text = currentlyIssuedTo["date"] ?: "",
                             fontSize = 14.sp,
                             color = Color.Black
                         )
@@ -533,7 +541,7 @@ fun GlowingIconCard(currentlyIssuedTo: IssuedToDetails?, currentCylinderDetails:
                             )
                         }
                         Text(
-                            text = "Rs. ${currentlyIssuedTo.rate}",
+                            text = "Rs. ${currentlyIssuedTo["rate"] ?: ""}",
                             fontSize = 14.sp,
                             color = Color.Black
                         )
@@ -550,21 +558,17 @@ fun GlowingIconCard(currentlyIssuedTo: IssuedToDetails?, currentCylinderDetails:
             }
         }
     }
-
-
-
 }
-
 
 // Extracted CustomerItem composable
 @Composable
-private fun CustomerItem(index: Int, customer: CustomerDetails) {
+private fun CustomerItem(index: Int, customer: Map<String, String>) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
-            .clickable { println("Clicked on customer: ${customer.name}") }
+            .clickable { println("Clicked on customer: ${customer["name"]}") }
             .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
             .padding(12.dp)
     ) {
@@ -579,7 +583,7 @@ private fun CustomerItem(index: Int, customer: CustomerDetails) {
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = customer.name,
+                    text = customer["name"] ?: "",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -591,98 +595,11 @@ private fun CustomerItem(index: Int, customer: CustomerDetails) {
                     Text("Selling Price:", fontSize = 14.sp, color = Color.Gray, modifier = Modifier.padding(start = 22.dp))
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(customer.date, fontSize = 14.sp, color = Color.Gray )
-                    Text("Rs. ${customer.rate}", fontSize = 14.sp, color = Color.Gray)
+                    Text(customer["date"] ?: "", fontSize = 14.sp, color = Color.Gray)
+                    Text("Rs. ${customer["rate"] ?: ""}", fontSize = 14.sp, color = Color.Gray)
                 }
             }
         }
-    }
-}
-
-// Data class to hold customer details
-data class CustomerDetails(val name: String, val date: String, val rate: String)
-
-// Function to manually parse the "Previous Customers" string
-fun parsePreviousCustomersManually(customersString: String): List<CustomerDetails> {
-    val customers = mutableListOf<CustomerDetails>()
-
-    // Remove the outermost square brackets
-    val trimmedString = customersString.removePrefix("[").removeSuffix("]")
-
-    // Split into individual customer entries using "}, {" as the delimiter
-    val customerEntries = trimmedString.split("}, {")
-
-    for (entry in customerEntries) {
-        // Remove any remaining curly braces
-        val cleanedEntry = entry.removePrefix("{").removeSuffix("}")
-
-        // Split into fields
-        val fields = cleanedEntry.split(", ")
-
-        var name = ""
-        var date = ""
-        var rate = ""
-
-        for (field in fields) {
-            // Split into key and value
-            val keyValue = field.split("=")
-            if (keyValue.size == 2) {
-                val key = keyValue[0].trim()
-                val value = keyValue[1].trim()
-
-                when (key) {
-                    "Name" -> name = value
-                    "Date" -> date = value
-                    "Rate" -> rate = value
-                }
-            }
-        }
-
-        // Only add the customer if all fields are non-empty
-        if (name.isNotEmpty() && date.isNotEmpty() && rate.isNotEmpty()) {
-            customers.add(CustomerDetails(name, date, rate))
-        }
-    }
-
-    return customers
-}
-
-
-// Data class to hold issued-to details
-data class IssuedToDetails(val name: String, val date: String, val rate: String)
-
-// Function to manually parse the "Currently Issued To" string
-fun parseCurrentlyIssuedToManually(issuedToString: String): IssuedToDetails? {
-    // Remove the outermost curly braces
-    val cleanedString = issuedToString.removePrefix("{").removeSuffix("}")
-
-    // Split into fields
-    val fields = cleanedString.split(", ")
-
-    var name = ""
-    var date = ""
-    var rate = ""
-
-    for (field in fields) {
-        // Split into key and value
-        val keyValue = field.split("=")
-        if (keyValue.size == 2) {
-            val key = keyValue[0].trim()
-            val value = keyValue[1].trim()
-
-            when (key) {
-                "Name" -> name = value
-                "Date" -> date = value
-                "Rate" -> rate = value
-            }
-        }
-    }
-
-    // Return the parsed details only if all fields are non-empty
-    return if (name.isNotEmpty() && date.isNotEmpty() && rate.isNotEmpty()) {
-        IssuedToDetails(name, date, rate)
-    } else {
-        null // Return null if any field is missing
     }
 }
 
@@ -794,7 +711,6 @@ private suspend fun updateCylinderDetails(db: FirebaseFirestore, serialNumber: S
         val document = db.collection("Cylinders")
             .document("Cylinders")
             .get()
-
 
         if (document.exists) {
             // Fetch the existing "CylinderDetails" array

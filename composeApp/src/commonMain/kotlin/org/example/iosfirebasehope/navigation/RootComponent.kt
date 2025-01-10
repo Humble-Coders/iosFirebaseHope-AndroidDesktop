@@ -8,13 +8,17 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.pushNew
 import kotlinx.serialization.Serializable
 import org.example.iosfirebasehope.navigation.components.AddCylinderScreenComponent
+import org.example.iosfirebasehope.navigation.components.AllCustomersScreenComponent
 import org.example.iosfirebasehope.navigation.components.AllCylinderDetailsScreenComponent
 import org.example.iosfirebasehope.navigation.components.BillScreenComponent
 import org.example.iosfirebasehope.navigation.components.CurrentCylinderDetailsComponent
+import org.example.iosfirebasehope.navigation.components.CustomerDetailsScreenComponent
 import org.example.iosfirebasehope.navigation.components.CylinderStatusScreenComponent
 import org.example.iosfirebasehope.navigation.components.GasVolumeScreenComponent
 import org.example.iosfirebasehope.navigation.components.HomeScreenComponent
+import org.example.iosfirebasehope.navigation.components.InventoryScreenComponent
 import org.example.iosfirebasehope.navigation.components.IssueCylinderScreenComponent
+import org.example.iosfirebasehope.navigation.components.NewOrChooseCustomerScreenComponent
 import org.example.iosfirebasehope.navigation.components.VolumeTypeScreenComponent
 
 class RootComponent(
@@ -54,6 +58,12 @@ class RootComponent(
                     },
                     onBillClick = {
                         navigation.pushNew(Configuration.BillScreen)
+                    },
+                    onInventoryClick = {
+                        navigation.pushNew(Configuration.InventoryScreen)
+                    },
+                    onAllCustomerClick = {
+                        navigation.pushNew(Configuration.AllCustomerScreen(it))
                     }
                 )
             )
@@ -159,7 +169,7 @@ class RootComponent(
                         navigation.pop()
                     },
                     onIssueCylinderClick = {
-                        navigation.pushNew(Configuration.IssueNewCylinderScreen)
+                        navigation.pushNew(Configuration.NewOrChooseCustomerScreen)
                     }
                 )
             )
@@ -171,8 +181,53 @@ class RootComponent(
                     }
                 )
             )
+            is Configuration.NewOrChooseCustomerScreen -> Child.NewOrChooseCustomerScreen(
+                NewOrChooseCustomerScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    }
+                )
+            )
+            is Configuration.InventoryScreen -> Child.InventoryScreen(
+                InventoryScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    }
+                )
+            )
+            is Configuration.AllCustomerScreen -> Child.AllCustomerScreen(
+                AllCustomersScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    },
+                    onCustomerClick = { customerDetails ,cylinderDetailList->
+                        navigation.pushNew(
+                            Configuration.CustomerDetailsScreen(
+                                customerDetails = customerDetails,
+                                cylinderDetailList = cylinderDetailList
+
+                            )
+                        )
+                    },
+                    cylinderDetailsList = config.cylinderDetailList
+                )
+            )
+            is Configuration.CustomerDetailsScreen -> Child.CustomerDetailsScreen(
+                CustomerDetailsScreenComponent(
+                    customerDetails = config.customerDetails,
+                    onBackClick = {
+                        navigation.pop()
+                    },
+                    cylinderDetailsList = config.cylinderDetailList
+                )
+            )
         }
     }
+        }
+
 
 
 
@@ -186,6 +241,10 @@ class RootComponent(
         data class CurrentCylinderDetailsScreen(val component: CurrentCylinderDetailsComponent): Child()
         data class BillScreen(val component: BillScreenComponent): Child()
         data class IssueNewCylinderScreen(val component: IssueCylinderScreenComponent): Child()
+        data class NewOrChooseCustomerScreen(val component: NewOrChooseCustomerScreenComponent): Child()
+        data class InventoryScreen(val component: InventoryScreenComponent): Child()
+        data class AllCustomerScreen(val component: AllCustomersScreenComponent): Child()
+        data class CustomerDetailsScreen(val component: CustomerDetailsScreenComponent): Child()
     }
 
     @Serializable  //converts from json to kotlin object
@@ -225,6 +284,17 @@ class RootComponent(
         data object IssueNewCylinderScreen: Configuration()
         companion object
 
+        @Serializable
+        data object NewOrChooseCustomerScreen: Configuration()
+
+        @Serializable
+        data object InventoryScreen: Configuration()
+
+        @Serializable
+        data class AllCustomerScreen(val cylinderDetailList: List<Map<String, String>>): Configuration()
+
+        @Serializable
+        data class CustomerDetailsScreen(val customerDetails: String,val cylinderDetailList: List<Map<String, String>>): Configuration()
     }
-}
+
 

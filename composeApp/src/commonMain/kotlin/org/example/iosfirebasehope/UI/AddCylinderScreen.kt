@@ -39,6 +39,7 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
     var selectedStatus by remember { mutableStateOf<String?>(null) }
     var remarks by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
 
     val gasTypes = remember { mutableStateListOf<String>() }
     val volumeTypes = remember { mutableStateListOf<String>() }
@@ -132,7 +133,8 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                             if (selectedGasType == null) {
                                 coroutineScope.launch {
                                     scaffoldState.snackbarHostState.showSnackbar(
-                                        "Please select a gas type first"
+                                        "Please select a gas type first",
+                                        duration = SnackbarDuration.Short
                                     )
                                 }
                             }
@@ -257,6 +259,7 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                     // Add Cylinder Button
                     Button(
                         onClick = {
+                            loading= true
                             coroutineScope.launch {
                                 if (selectedGasType == "LPG") {
                                     // Fetch LastSerial from LPG collection
@@ -265,7 +268,7 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                     val quantityInt = quantity.toIntOrNull() ?: 0
 
                                     if (quantityInt <= 0) {
-                                        scaffoldState.snackbarHostState.showSnackbar("Please enter a valid quantity.")
+                                        scaffoldState.snackbarHostState.showSnackbar("Please enter a valid quantity.", duration = SnackbarDuration.Short)
                                         return@launch
                                     }
 
@@ -311,7 +314,8 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                     }
 
                                     scaffoldState.snackbarHostState.showSnackbar(
-                                        "$quantityInt cylinders added successfully."
+                                        "$quantityInt cylinders added successfully.",
+                                        duration= SnackbarDuration.Short
                                     )
                                 } else {
                                     // Non-LPG logic
@@ -319,7 +323,7 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                         "Serial Number" to serialNumber,
                                         "Batch Number" to batchNumber,
                                         "Gas Type" to selectedGasType,
-                                        "Volume Type" to selectedVolumeType,
+                                        "Volume Type" to selectedVolumeType?.replace(",", "."),
                                         "Status" to selectedStatus,
                                         "Remarks" to remarks,
                                         "Return Date" to ""
@@ -352,11 +356,13 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                             }
 
                                             scaffoldState.snackbarHostState.showSnackbar(
-                                                "Cylinder Successfully Added."
+                                                "Cylinder Successfully Added.",
+                                                duration = SnackbarDuration.Short
                                             )
                                         } else {
                                             scaffoldState.snackbarHostState.showSnackbar(
-                                                "Cylinder with SerialNumber $serialNumber already exists."
+                                                "Cylinder with SerialNumber $serialNumber already exists.",
+                                                duration = SnackbarDuration.Short
                                             )
                                         }
                                     } else {
@@ -382,6 +388,7 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                                 }
 
                                 // Clear input fields after adding
+                                loading = false
                                 serialNumber = ""
                                 batchNumber = ""
                                 selectedGasType = null
@@ -392,7 +399,8 @@ fun AddCylinderScreenUI(component: AddCylinderScreenComponent, db: FirebaseFires
                             }
                         },
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb)),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !loading
                     ) {
                         Text("Add Cylinder", color = Color.White)
                     }

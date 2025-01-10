@@ -73,7 +73,7 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
     LaunchedEffect(Unit) {
         cylinderDetailsList= allCylinderDetails(db)
         gasDocuments= gasDocuments(db)
-         cylinderList = SortCylindersData(cylinderDetailsList,gasDocuments)
+        cylinderList = SortCylindersData(cylinderDetailsList,gasDocuments)
         isLoading=false
 
     }
@@ -100,6 +100,7 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                         icon = Icons.Default.Person,
                         text = "Customer Details",
                         onClick = {
+                            component.onEvent(HomeScreenEvent.OnAllCustomerClick(cylinderDetailsList))
                             scope.launch { drawerState.close() }
                         }
                     )
@@ -162,7 +163,7 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                             icon = { Icon(Icons.Default.List, contentDescription = "Repair", tint = Color.White) },
                             label = { Text("Inventory") },
                             selected = false,
-                            onClick = { /* Handle Repair click */ }
+                            onClick = { component.onEvent(HomeScreenEvent.onInventoryClick) }
                         )
                     }
                 }

@@ -11,6 +11,7 @@ androidx-espresso-core = "3.6.0"
 androidx-material = "1.12.0"
 androidx-test-junit = "1.2.0"
 compose-plugin = "1.6.11"
+foundation = "1.7.6"
 junit = "4.13.2"
 kotlin = "2.0.0"
 kotlinxDatetime = "0.6.0"
@@ -27,6 +28,7 @@ compose-multiplatform = "1.7.0"
 kotlinx-coroutines = "1.9.0"
 
 [libraries]
+androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

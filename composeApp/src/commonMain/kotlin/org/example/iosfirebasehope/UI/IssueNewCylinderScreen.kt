@@ -1,5 +1,7 @@
 package org.example.iosfirebasehope.UI
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,6 +25,11 @@ import kotlinx.datetime.LocalDate
 import org.example.iosfirebasehope.navigation.components.IssueCylinderScreenComponent
 import org.example.iosfirebasehope.navigation.events.IssueCylinderScreenEvent
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import dev.gitlive.firebase.firestore.FieldValue
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
@@ -44,6 +51,7 @@ fun IssueNewCylinderScreenUI(component: IssueCylinderScreenComponent, db: Fireba
     var returnDays by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var alreadySelectedCylinders by remember { mutableStateOf<List<String>>(emptyList()) } // State for already selected cylinders
 
     // Fetch customers from Firestore
     LaunchedEffect(Unit) {
@@ -197,7 +205,11 @@ fun IssueNewCylinderScreenUI(component: IssueCylinderScreenComponent, db: Fireba
             onAddCylinder = { issuedCylinder ->
                 issuedCylinders = issuedCylinders + issuedCylinder
             },
-            db = db
+            db = db,
+            alreadySelectedCylinders = alreadySelectedCylinders,
+            onUpdateAlreadySelectedCylinders = { updatedList ->
+                alreadySelectedCylinders = updatedList
+            }
         )
     }
 }
@@ -265,7 +277,9 @@ fun CustomDatePicker(
 fun AddCylinderDialog(
     onDismiss: () -> Unit,
     onAddCylinder: (IssuedCylinder) -> Unit,
-    db: FirebaseFirestore
+    db: FirebaseFirestore,
+    alreadySelectedCylinders: List<String>,
+    onUpdateAlreadySelectedCylinders: (List<String>) -> Unit
 ) {
     var gasType by remember { mutableStateOf<String?>(null) }
     var volumeType by remember { mutableStateOf<String?>(null) }
@@ -273,9 +287,11 @@ fun AddCylinderDialog(
     var selectedCylinders by remember { mutableStateOf<List<String>>(emptyList()) }
     var prices by remember { mutableStateOf<List<Double>>(emptyList()) }
     var totalPrice by remember { mutableStateOf(0.0) }
-    var cylinderOptions by remember { mutableStateOf<List<String>>(emptyList()) } // State for gas types
-    var volumeOptions by remember { mutableStateOf<List<String>>(emptyList()) } // State for volume types
-    var availableCylinders by remember { mutableStateOf<List<String>>(emptyList()) } // State for available cylinders
+    var cylinderOptions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var volumeOptions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var availableCylinders by remember { mutableStateOf<List<String>>(emptyList()) }
+    var localAlreadySelectedCylinders by remember { mutableStateOf(alreadySelectedCylinders) }
+
     val coroutineScope = rememberCoroutineScope()
 
     // Fetch gas types on launch
@@ -293,27 +309,27 @@ fun AddCylinderDialog(
                 volumeOptions = it.keys.map { volume -> volume.replace(",", ".") }
             }
         } else {
-            volumeOptions = emptyList() // Clear volume options if no gas type is selected
+            volumeOptions = emptyList()
         }
     }
 
     // Fetch available cylinders when gasType or volumeType changes
     LaunchedEffect(gasType, volumeType) {
         if (gasType != null && volumeType != null) {
-            // Fetch cylinders with matching gas type, volume type, and status "Full"
             coroutineScope.launch {
-                availableCylinders = fetchCylindersByStatus(db, gasType!!, volumeType!!, "Full")
+                val allCylinders = fetchCylindersByStatus(db, gasType!!, volumeType!!, "Full")
+                availableCylinders = allCylinders.filter { it !in localAlreadySelectedCylinders }
             }
         } else {
-            availableCylinders = emptyList() // Clear available cylinders if no gas type or volume type is selected
+            availableCylinders = emptyList()
         }
     }
 
     // Initialize selectedCylinders and prices lists when quantity changes
     LaunchedEffect(quantity.toIntOrNull()) {
         val quantityInt = quantity.toIntOrNull() ?: 0
-        selectedCylinders = List(quantityInt) { "" } // Initialize with empty strings
-        prices = List(quantityInt) { 0.0 } // Initialize with 0.0
+        selectedCylinders = List(quantityInt) { "" }
+        prices = List(quantityInt) { 0.0 }
     }
 
     AlertDialog(
@@ -350,13 +366,31 @@ fun AddCylinderDialog(
 
                 // Cylinder Dropdowns
                 if (quantity.toIntOrNull() != null) {
+                    // Reset localAlreadySelectedCylinders and selectedCylinders when quantity changes
+                    LaunchedEffect(quantity.toIntOrNull()) {
+                        localAlreadySelectedCylinders = emptyList()
+                        selectedCylinders = List(quantity.toInt()) { "" }
+//                        availableCylinders = availableCylinders.filter { it !in alreadySelectedCylinders }
+//                         Re-fetch availableCylinders and exclude any cylinders that are still selected
+                        if (gasType != null && volumeType != null) {
+                            coroutineScope.launch {
+                                val allCylinders = fetchCylindersByStatus(db, gasType!!, volumeType!!, "Full")
+                                availableCylinders = allCylinders.filter { it !in alreadySelectedCylinders }
+                            }
+                        }
+                    }
+
                     repeat(quantity.toInt()) { index ->
                         Text("Cylinder ${index + 1}", fontWeight = FontWeight.Bold)
                         SearchableDropdown(
                             options = availableCylinders,
                             selectedItem = selectedCylinders.getOrNull(index),
-                            onItemSelected = { selectedCylinders = selectedCylinders.toMutableList().apply { set(index, it) } },
-                            placeholder = "Select Cylinder"
+                            onItemSelected = { selectedCylinder ->
+                                selectedCylinders = selectedCylinders.toMutableList().apply { set(index, selectedCylinder) }
+                                localAlreadySelectedCylinders = localAlreadySelectedCylinders + selectedCylinder + alreadySelectedCylinders
+                                availableCylinders = availableCylinders.filter { it != localAlreadySelectedCylinders[index] }
+                            },
+                            placeholder = "Select Cylinder",
                         )
                         OutlinedTextField(
                             value = prices.getOrNull(index)?.toString() ?: "",
@@ -376,16 +410,12 @@ fun AddCylinderDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    // Ensure at least one cylinder is selected
                     if (selectedCylinders.isNotEmpty()) {
-                        // Calculate the total price
                         totalPrice = prices.sum()
-
-                        // Create an IssuedCylinder object for each selected cylinder
                         selectedCylinders.forEach { serialNumber ->
                             onAddCylinder(
                                 IssuedCylinder(
-                                    serialNumber = serialNumber, // Pass the serial number
+                                    serialNumber = serialNumber,
                                     gasType = gasType ?: "",
                                     volumeType = volumeType ?: "",
                                     quantity = quantity.toInt(),
@@ -393,13 +423,10 @@ fun AddCylinderDialog(
                                 )
                             )
                         }
-
-                        // Dismiss the dialog
+                        onUpdateAlreadySelectedCylinders(localAlreadySelectedCylinders)
                         onDismiss()
                     } else {
-                        // Show an error message if no cylinders are selected
                         coroutineScope.launch {
-                            // Show a snackbar with the error message
                             SnackbarHostState().showSnackbar("Please select at least one cylinder.")
                         }
                     }
@@ -497,22 +524,28 @@ suspend fun checkoutCylinders(
             transactionsRef.set(emptyMap<String, Any>())
         }
 
-        // Get the current date and time
-        val currentDateTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-        val dateTimeString = "${currentDateTime.date}_${currentDateTime.hour}:${currentDateTime.minute}:${currentDateTime.second}"
+        // Get the current date
+        val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
 
-        val transactionCollectionRef = transactionsRef.collection(dateTimeString)
+        // Reference the transactions collection with today's date
+        val transactionCollectionRef = transactionsRef.collection(currentDate)
 
-        // Add the required documents
-        transactionCollectionRef.document("Cash").set(mapOf("Amount" to ""))
-        transactionCollectionRef.document("Credit").set(mapOf("Amount" to ""))
-        transactionCollectionRef.document("Cylinders Returned").set(mapOf("CylindersReturned" to listOf<String>()))
+        // Check if the collection exists by trying to retrieve a document in it
+        val cashDocRef = transactionCollectionRef.document("Cash")
+        val collectionExists = cashDocRef.get().exists
+
+        if (!collectionExists) {
+            // Add the required documents if the collection does not exist
+            transactionCollectionRef.document("Cash").set(mapOf("Amount" to ""))
+            transactionCollectionRef.document("Credit").set(mapOf("Amount" to ""))
+            transactionCollectionRef.document("Cylinders Returned").set(mapOf("CylindersReturned" to listOf<String>()))
+        }
 
         // Retrieve existing CylindersIssued array if present
         val cylindersIssuedRef = transactionCollectionRef.document("Cylinders Issued")
         val cylindersSnapshot = cylindersIssuedRef.get()
         val existingCylindersIssued = if (cylindersSnapshot.exists) {
-            cylindersSnapshot.get("CylindersIssued") as? List<Map<String, Any>> ?: emptyList()
+            cylindersSnapshot.get("CylindersIssued") as? List<Map<String, String>> ?: emptyList()
         } else {
             emptyList()
         }
@@ -527,7 +560,33 @@ suspend fun checkoutCylinders(
 
         // Combine existing and new CylindersIssued
         val updatedCylindersIssued = existingCylindersIssued + newCylindersIssued
+
+        // Upload the updated CylindersIssued array
         cylindersIssuedRef.set(mapOf("CylindersIssued" to updatedCylindersIssued))
+
+
+        // Part 3: Update Status in Cylinders > Cylinders > CylinderDetails
+        val cylindersRef = db.collection("Cylinders").document("Cylinders")
+        val cylindersSnapshot2 = cylindersRef.get()
+
+        if (cylindersSnapshot2.exists) {
+            val cylinderDetails = cylindersSnapshot2.get("CylinderDetails") as? List<Map<String, String>> ?: emptyList()
+
+            // Convert the list to a mutable list for modification
+            val updatedCylinderDetails = cylinderDetails.map { map ->
+                if (map["Serial Number"] in issuedCylinders.map { it.serialNumber }) {
+                    map.toMutableMap().apply {
+                        this["Status"] = "Issued"
+                    }
+                } else {
+                    map
+                }
+            }
+
+            // Upload the updated array back to Firestore
+            cylindersRef.set(mapOf("CylinderDetails" to updatedCylinderDetails))
+        }
+
 
         return true
     } catch (e: Exception) {
@@ -535,6 +594,7 @@ suspend fun checkoutCylinders(
         return false
     }
 }
+
 
 
 
@@ -753,50 +813,68 @@ fun SearchableDropdown(
     val filteredOptions = options.filter { it.contains(searchQuery, ignoreCase = true) }
 
     Box(modifier = modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { newValue -> searchQuery = newValue },
-            label = {
-                Text(text = placeholder) // Ensure this is correctly composable
-            },
-            modifier = Modifier
-                .fillMaxWidth(),
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Dropdown",
-                    modifier = Modifier.clickable { expanded = !expanded }
-                )
-            },
-            readOnly = true, // Prevent manual input
-            singleLine = true
-        )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (filteredOptions.isEmpty()) {
-                DropdownMenuItem(
-                    onClick = { /* Do nothing */ },
-                    text = { Text(text = "No options found") }
-                )
-            } else {
-                filteredOptions.forEach { option ->
-                    DropdownMenuItem(
-                        onClick = {
-                            onItemSelected(option)
-                            expanded = false
-                            searchQuery = option // Update the search query to show the selected item
-                        },
-                        text = { Text(text = option) }
+        Column {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = {
+                    searchQuery = it
+                    expanded = it.isNotEmpty()
+                },
+                label = { Text(placeholder) },
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        modifier = Modifier.clickable { expanded = !expanded }
                     )
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (expanded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.onSurface)
+                        .heightIn(max = 200.dp) // Set a maximum height for the dropdown
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (filteredOptions.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "No options found",
+                                    modifier = Modifier.padding(16.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            items(filteredOptions.size) { index ->
+                                val option = filteredOptions[index]
+                                Text(
+                                    text = option,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            searchQuery = option
+                                            onItemSelected(option)
+                                            expanded = false
+                                        }
+                                        .padding(16.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 fun IssuedCylinderCard(cylinder: IssuedCylinder) {

@@ -113,7 +113,7 @@ fun ActionCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        border = BorderStroke(2.dp, Color(0xFF2f80eb)) // Add border with color
+        border = BorderStroke(2.dp, Color(0xAA2f80eb)) // Add border with color
     ) {
         Column(
             modifier = Modifier
