@@ -6,7 +6,8 @@ import org.example.iosfirebasehope.navigation.events.HomeScreenEvent
 
 class AddCylinderScreenComponent (
     componentContext: ComponentContext,
-    private val onBackClick: () -> Unit
+    private val onBackClick: () -> Unit,
+    val cylinderDetailList: List<Map<String, String>>
 
 ){
     fun onEvent(event: AddCylinderScreenEvent){

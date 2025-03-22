@@ -1,32 +1,13 @@
 {
   "project_info": {
-    "project_number": "475116352761",
-    "project_id": "fireeeeeeeeeee-74b36",
-    "storage_bucket": "fireeeeeeeeeee-74b36.firebasestorage.app"
+    "project_number": "738035583514",
+    "project_id": "cylinder-management-24e4c",
+    "storage_bucket": "cylinder-management-24e4c.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:475116352761:android:afcd4a114e6bd07e7f5e28",
-        "android_client_info": {
-          "package_name": "com.rakangsoftware.firestore"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyA0S984yFDRRVR-PEYcQ_O7wIRUmMRYRnA"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:475116352761:android:b17f2c79f1a7acba7f5e28",
+        "mobilesdk_app_id": "1:738035583514:android:50a3c338034c9fc1bd1fa3",
         "android_client_info": {
           "package_name": "org.example.iosfirebasehope"
         }
@@ -34,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA0S984yFDRRVR-PEYcQ_O7wIRUmMRYRnA"
+          "current_key": "AIzaSyDmNbZa-CKvJoC9BVccVKy7UHKCgrhg5qY"
         }
       ],
       "services": {

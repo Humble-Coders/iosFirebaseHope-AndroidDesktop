@@ -34,9 +34,9 @@ fun main() = application {
     })
 
     val options = FirebaseOptions(
-        projectId = "fireeeeeeeeeee-74b36",
-        applicationId = "1:475116352761:web:100172bed5d8d8e57f5e28",
-        apiKey = "AIzaSyAclm2VoUablWpJlD86zKzUxrng7s1uUz8"
+        projectId = "cylinder-management-24e4c",
+        applicationId = "1:738035583514:web:16287d2bf644a445bd1fa3",
+        apiKey = "AIzaSyBtxQ_xs4tS6WlhyAhCdVu80UrG7GbPJGY"
     )
 
     Firebase.initialize(Application(), options)

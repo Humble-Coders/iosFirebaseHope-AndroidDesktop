@@ -16,7 +16,7 @@ plugins {
 }
 
 kotlin {
-    tasks.create("testclasses")
+    tasks.create("testclasses");
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
@@ -67,8 +67,6 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
 
             implementation(libs.kotlinx.datetime)
-
-
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -110,7 +108,7 @@ android {
         compose = true
     }
     dependencies {
-        debugImplementation(compose.uiTooling)
+        debugImplementation(compose.uiTooling);
     }
 }
 

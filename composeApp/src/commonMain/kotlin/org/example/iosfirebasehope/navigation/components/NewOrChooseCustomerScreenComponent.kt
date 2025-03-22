@@ -6,10 +6,12 @@ import org.example.iosfirebasehope.navigation.events.NewOrChooseCustomerScreenEv
 class NewOrChooseCustomerScreenComponent(
     componentContext: ComponentContext,
     private val onBackClick: () -> Unit,
+    private val onChooseCustomerClick: (String) -> Unit,
 ) {
     fun onEvent(event: NewOrChooseCustomerScreenEvent) {
         when (event) {
             is NewOrChooseCustomerScreenEvent.OnBackClick -> onBackClick()
+            is NewOrChooseCustomerScreenEvent.OnChooseCustomerClick -> onChooseCustomerClick(event.customerName)
         }
     }
 }
