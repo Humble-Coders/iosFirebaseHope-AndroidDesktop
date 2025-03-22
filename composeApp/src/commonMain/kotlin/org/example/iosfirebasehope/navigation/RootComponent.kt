@@ -13,9 +13,12 @@ import org.example.iosfirebasehope.navigation.components.AllCustomersScreenCompo
 import org.example.iosfirebasehope.navigation.components.AllCylinderDetailsScreenComponent
 import org.example.iosfirebasehope.navigation.components.AllVendorsScreenComponent
 import org.example.iosfirebasehope.navigation.components.BillScreenComponent
+import org.example.iosfirebasehope.navigation.components.CreditListScreenComponent
 import org.example.iosfirebasehope.navigation.components.CurrentCylinderDetailsComponent
+import org.example.iosfirebasehope.navigation.components.CurrentlyIssuedScreenComponent
 import org.example.iosfirebasehope.navigation.components.CustomerDetailsScreenComponent
 import org.example.iosfirebasehope.navigation.components.CylinderStatusScreenComponent
+import org.example.iosfirebasehope.navigation.components.DailyBookScreenComponent
 import org.example.iosfirebasehope.navigation.components.ExchangeCylinderScreenComponent
 import org.example.iosfirebasehope.navigation.components.GasVolumeScreenComponent
 import org.example.iosfirebasehope.navigation.components.GenerateBillScreenComponent
@@ -95,6 +98,15 @@ class RootComponent(
                     },
                     onAllVendorClick = { cylinderDetailList, gasList ->
                         navigation.pushNew(Configuration.AllVendorScreen(cylinderDetailList, gasList))
+                    },
+                    onCreditListClick = {
+                        navigation.pushNew(Configuration.CreditListScreen)
+                    },
+                    onCurrentlyIssuedClick = {
+                        navigation.pushNew(Configuration.CurrentlyIssuedScreen(it))
+                    },
+                    onDailyBookClick = {
+                        navigation.pushNew(Configuration.DailyBookScreen)
                     }
                 )
             )
@@ -522,6 +534,32 @@ class RootComponent(
                     componentContext = context
                 )
             )
+            is Configuration.CreditListScreen -> Child.CreditListScreen(
+                CreditListScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    }
+                )
+            )
+
+            is Configuration.CurrentlyIssuedScreen -> Child.CurrentlyIssuedScreen(
+                CurrentlyIssuedScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    },
+                    cylinderDetailList = config.CylinderdetailsList
+                )
+            )
+            is Configuration.DailyBookScreen -> Child.DailyBookScreen(
+                DailyBookScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    }
+                )
+            )
         }
     }
 }
@@ -558,6 +596,9 @@ sealed class Child{
     data class TransactionVendorScreen(val component: TransactionVendorScreenComponent): Child()
     data class TransactionVendorDetailsScreen(val component: TransactionVendorDetailsScreenComponent): Child()
     data class GenerateChallanScreen(val component: GenerateChallanScreenComponent): Child()
+    data class CreditListScreen(val component: CreditListScreenComponent): Child()
+    data class CurrentlyIssuedScreen(val component: CurrentlyIssuedScreenComponent): Child()
+    data class DailyBookScreen ( val component: DailyBookScreenComponent): Child()
 }
 
 @Serializable  //converts from json to kotlin object
@@ -589,6 +630,8 @@ sealed class Configuration{
 
     @Serializable
     data class CurrentCylinderDetails(val currentCylinderDetails: Map<String, String>): Configuration()
+
+
 
     @Serializable
     data object BillScreen: Configuration()
@@ -653,4 +696,13 @@ sealed class Configuration{
 
     @Serializable
     data class GenerateChallanScreen(val vendorName: String,val dateTime: String): Configuration()
+
+    @Serializable
+    data object CreditListScreen: Configuration()
+
+    @Serializable
+    data class CurrentlyIssuedScreen (val CylinderdetailsList :List<Map<String,String>>): Configuration()
+
+    @Serializable
+    data object DailyBookScreen: Configuration()
 }

@@ -7,6 +7,9 @@ import org.example.iosfirebasehope.navigation.events.HomeScreenEvent
 class HomeScreenComponent(
     componentContext: ComponentContext,
     private val onStatusClick: (List<Map<String, String>>, String, List<String>) -> Unit,
+    private val onCreditListClick: () -> Unit,
+    private val onDailyBookClick: () -> Unit,
+    private val onCurrentlyIssuedClick: (List<Map<String,String>>) -> Unit,
     private val onAddCylinderClick: (List<Map<String,String>>) -> Unit,
     private val onNotificationClick:(List<Map<String,String>>)->Unit,
     private val onInventoryClick: () -> Unit,
@@ -28,6 +31,9 @@ class HomeScreenComponent(
             is HomeScreenEvent.OnNotificationClick -> onNotificationClick(event.cylinderDetail)
             is HomeScreenEvent.OnRefillClick -> onRefillClick()
             is HomeScreenEvent.OnAllVendorClick -> onAllVendorClick(event.cylinderDetailList, event.gasList)
+            is HomeScreenEvent.onCreditListClick -> onCreditListClick()
+            is HomeScreenEvent.onCurrentlyIssuedClick -> onCurrentlyIssuedClick(event.cylinderDetailsList)
+            is HomeScreenEvent.OnDailyBookClick -> onDailyBookClick()
         }
     }
 }

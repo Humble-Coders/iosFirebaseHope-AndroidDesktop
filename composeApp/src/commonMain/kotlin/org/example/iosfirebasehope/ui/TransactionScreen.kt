@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,19 @@ fun TransactionScreenUI(
 
     // State to hold transactions grouped by date and time
     var transactions by remember { mutableStateOf<Map<String, Map<String, Any>>?>(null) }
+
+    // Filter state
+    var filterType by remember { mutableStateOf("None") }
+    var dateFilterExpanded by remember { mutableStateOf(false) }
+    var filterExpanded by remember { mutableStateOf(false) }
+    var selectedDate by remember { mutableStateOf("") }
+
+    // Get unique dates for date filter
+    val allDates = transactions?.entries?.map { entry ->
+        val (date, _) = entry.key.split("_")
+        val dateList = date.split("-")
+        "${dateList[2]}-${dateList[1]}-${dateList[0]}"
+    }?.distinct()?.sorted() ?: emptyList()
 
     // Fetch transactions on launch
     LaunchedEffect(customerName) {
@@ -72,20 +86,132 @@ fun TransactionScreenUI(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
+            // Filter dropdowns
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Filter by:",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+
+                // Primary filter dropdown
+                Box {
+                    Button(
+                        onClick = { filterExpanded = true },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb)),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text(filterType, color = Color.White)
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Dropdown",
+                            tint = Color.White
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = filterExpanded,
+                        onDismissRequest = { filterExpanded = false }
+                    ) {
+                        DropdownMenuItem(onClick = {
+                            filterType = "None"
+                            selectedDate = ""
+                            filterExpanded = false
+                        }) {
+                            Text("None")
+                        }
+                        DropdownMenuItem(onClick = {
+                            filterType = "Date"
+                            filterExpanded = false
+                            dateFilterExpanded = true
+                        }) {
+                            Text("Date")
+                        }
+                        DropdownMenuItem(onClick = {
+                            filterType = "Credit"
+                            selectedDate = ""
+                            filterExpanded = false
+                        }) {
+                            Text("Credit")
+                        }
+                    }
+                }
+
+                // Date filter dropdown (shows only when Date filter is selected)
+                if (filterType == "Date") {
+                    Box {
+                        Button(
+                            onClick = { dateFilterExpanded = true },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb))
+                        ) {
+                            Text(if (selectedDate.isEmpty()) "Select Date" else selectedDate, color = Color.White)
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Dropdown",
+                                tint = Color.White
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = dateFilterExpanded,
+                            onDismissRequest = { dateFilterExpanded = false }
+                        ) {
+                            allDates.forEach { date ->
+                                DropdownMenuItem(onClick = {
+                                    selectedDate = date
+                                    dateFilterExpanded = false
+                                }) {
+                                    Text(date)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (transactions != null) {
-                // Display transactions grouped by date and time
+                // Apply filters
+                val filteredTransactions = when (filterType) {
+                    "Date" -> {
+                        if (selectedDate.isEmpty()) {
+                            transactions
+                        } else {
+                            // Convert selected date back to original format for filtering
+                            val dateParts = selectedDate.split("-")
+                            val originalFormat = "${dateParts[2]}-${dateParts[1]}-${dateParts[0]}"
+                            transactions?.filter { entry ->
+                                entry.key.startsWith(originalFormat)
+                            }
+                        }
+                    }
+                    "Credit" -> {
+                        transactions?.filter { (_, details) ->
+                            val creditAmount = details["Credit"] as String
+                            creditAmount != "0"
+                        }
+                    }
+                    else -> transactions
+                }
+
+                // Display filtered transactions
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    items(transactions!!.entries.sortedByDescending { it.key }) { (dateTime, transactionDetails) ->
+                    items(filteredTransactions!!.entries.sortedByDescending { it.key }) { (dateTime, transactionDetails) ->
                         // Split date and time
                         val (date, time) = dateTime.split("_")
-                        //this date is displayed in format yyyy-mm-dd , i want it to be in format dd-mm-yyyy
+                        // Format date
                         val dateList = date.split("-")
                         val newDate = "${dateList[2]}-${dateList[1]}-${dateList[0]}"
-
 
                         // Calculate counts
                         val cylindersIssuedCount = countSerialNumbers(transactionDetails["CylindersIssued"] as List<Map<String, String>>)
@@ -387,7 +513,7 @@ private fun TransactionCard(
     }
 }
 
-// Suspend function to fetch all transactions (updated to include LPG Returned and Delivery)
+// Suspend function to fetch all transactions (unchanged from original)
 private suspend fun fetchTransactions(
     db: FirebaseFirestore,
     customerName: String

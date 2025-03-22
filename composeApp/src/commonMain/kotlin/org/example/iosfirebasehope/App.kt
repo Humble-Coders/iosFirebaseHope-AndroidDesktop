@@ -41,6 +41,7 @@ import org.example.iosfirebasehope.navigation.Child.AddCylinderScreen
 import org.example.iosfirebasehope.navigation.Child.AllCustomerScreen
 import org.example.iosfirebasehope.navigation.Child.AllCylinderDetailsScreen
 import org.example.iosfirebasehope.navigation.Child.BillScreen
+
 import org.example.iosfirebasehope.navigation.Child.CurrentCylinderDetailsScreen
 import org.example.iosfirebasehope.navigation.Child.CustomerDetailsScreen
 import org.example.iosfirebasehope.navigation.Child.CylinderStatusScreen
@@ -52,8 +53,9 @@ import org.example.iosfirebasehope.navigation.Child.NewIssueCylinderScreen
 import org.example.iosfirebasehope.navigation.Child.NewOrChooseCustomerScreen
 import org.example.iosfirebasehope.navigation.Child.VolumeTypeScreen
 import org.example.iosfirebasehope.navigation.RootComponent
-
-
+import org.example.iosfirebasehope.ui.CreditListScreen
+import org.example.iosfirebasehope.ui.CurrentlyIssuedScreenUI
+import org.example.iosfirebasehope.ui.DailyBookScreenUI
 
 
 @Composable
@@ -128,6 +130,9 @@ fun App(rootComponent: RootComponent, db: FirebaseFirestore){
                     instance.component.VendorName, instance.component.dateTime, db,
                     component = instance.component
                 )
+                is Child.CreditListScreen -> CreditListScreen(instance.component,db)
+                is Child.CurrentlyIssuedScreen-> CurrentlyIssuedScreenUI(instance.component,db,instance.component.cylinderDetailList)
+                is Child.DailyBookScreen -> DailyBookScreenUI(instance.component,db)
             }
         }
     }

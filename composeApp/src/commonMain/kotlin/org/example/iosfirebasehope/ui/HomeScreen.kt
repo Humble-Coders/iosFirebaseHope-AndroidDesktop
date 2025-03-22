@@ -172,6 +172,33 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                     )
                     Divider(color = Color.Gray, thickness = 1.dp)
 
+                        DrawerItem(
+                            icon = Icons.Default.Info,
+                            text = "Credit List",
+                            onClick = {
+                                component.onEvent(HomeScreenEvent.onCreditListClick)
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+
+                        DrawerItem(
+                            icon = Icons.Default.Info,
+                            text = "Issued List",
+                            onClick = {
+                                component.onEvent(HomeScreenEvent.onCurrentlyIssuedClick(cylinderDetailsList))
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+
+                        DrawerItem(
+                            icon = Icons.Default.Info,
+                            text = "Daily Book",
+                            onClick = {
+                                component.onEvent(HomeScreenEvent.OnDailyBookClick)
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+
                     Spacer(modifier = Modifier.weight(1f)) // Spacer to push content to the top
                     Image(
                         painter = painterResource(resource = Res.drawable.developed), // Replace with your image resource

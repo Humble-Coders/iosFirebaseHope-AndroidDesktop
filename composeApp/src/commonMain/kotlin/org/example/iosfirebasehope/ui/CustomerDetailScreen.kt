@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.AlertDialog
@@ -64,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,12 +83,15 @@ import org.example.iosfirebasehope.navigation.events.CustomerDetailsScreenEvent
 
 @Composable
 fun CustomerDetailsScreenUI(
-    customerName: String, // Customer name passed as a parameter
+    customerName: String,
     component: CustomerDetailsScreenComponent,
-    cylinderDetail: List<Map<String, String>>, // List of cylinder details passed as a parameter
-    db: FirebaseFirestore, // FirebaseFirestore instance for data fetching,
+    cylinderDetail: List<Map<String, String>>,
+    db: FirebaseFirestore,
     gasList: List<String>
 ) {
+    // Define your company name
+    val COMPANY_NAME = "Gobind Traders"// Replace with your actual firm name
+
     println("CustomerDetailsScreenUI : $cylinderDetail")
     val coroutineScope = rememberCoroutineScope()
     val scaffoldState = rememberScaffoldState()
@@ -101,8 +108,8 @@ fun CustomerDetailsScreenUI(
     var lpgIssued by remember { mutableStateOf<Map<String, String>?>(null) }
 
     // State for search functionality
-    var isSearchActive by remember { mutableStateOf(false) } // State to toggle between text and search bar
-    var searchQuery by remember { mutableStateOf("") } // State to hold the search query
+    var isSearchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     var isUploading = remember { mutableStateOf(false) }
     var isCashDialogActive by remember { mutableStateOf(false) }
     var selectedGases by remember { mutableStateOf("") }
@@ -152,7 +159,7 @@ fun CustomerDetailsScreenUI(
                 lpgIssued = lpgIssuedDoc.get("Quantities") as? Map<String, String>
             } else {
                 coroutineScope.launch {
-                    scaffoldState.snackbarHostState.showSnackbar("No LPG Issued found.")
+                  //  scaffoldState.snackbarHostState.showSnackbar("No LPG Issued found.")
                 }
             }
         } catch (e: Exception) {
@@ -180,6 +187,7 @@ fun CustomerDetailsScreenUI(
         val cylinder = cylinderDetail.find { it["Serial Number"] == serialNumber }
         cylinder?.get("Gas Type") to cylinder?.get("Volume Type")
     }
+
     Scaffold(
         scaffoldState = scaffoldState,
         topBar = {
@@ -196,8 +204,6 @@ fun CustomerDetailsScreenUI(
                     }
                 }
             )
-        },
-        bottomBar = {
         }
     ) {
         Column(
@@ -261,53 +267,53 @@ fun CustomerDetailsScreenUI(
                 )
             }
 
-            // Search Header for Issued Cylinders
-//            SearchHeader(
-//                isSearchActive = isSearchActive,
-//                searchQuery = searchQuery,
-//                onSearchQueryChange = { searchQuery = it },
-//                onSearchActiveChange = { isSearchActive = it }
-//            )
-
-            // Fixed space for Currently Issued Cylinders
+            // Improved header for Currently Issued Cylinders
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .background(Color(0xFFF5F5F5))
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Currently Issued Cylinders:",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
+                    Column {
+                        Text(
+                            text = "Currently Issued Cylinders",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color(0xFF2f80eb)
+                        )
+                        Text(
+                            text = "$COMPANY_NAME",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+
                     Box(
                         modifier = Modifier
                             .clickable { expanded = true }
                             .background(Color.White, RoundedCornerShape(8.dp))
                             .border(1.dp, Color(0xFF2f80eb), RoundedCornerShape(8.dp))
                             .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .width(64.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if (selectedGases.isEmpty()) "Filter" else selectedGases,
+                                text = if (selectedGases.isEmpty()) "Filter Gas" else selectedGases,
                                 color = if (selectedGases.isEmpty()) Color.Gray else Color.Black,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
-                                modifier = Modifier.clickable { expanded = true }
+                                tint = Color(0xFF2f80eb)
                             )
                         }
 
@@ -319,7 +325,7 @@ fun CustomerDetailsScreenUI(
                                 selectedGases = ""
                                 expanded = false
                             }) {
-                                Text(text = "None")
+                                Text(text = "All Gas Types")
                             }
                             Divider(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -330,24 +336,74 @@ fun CustomerDetailsScreenUI(
                                 }) {
                                     Text(text = gas)
                                 }
-                                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                                if (gas != gasList.last()) {
+                                    Divider(modifier = Modifier.padding(vertical = 4.dp))
+                                }
                             }
                         }
                     }
-                }}
+                }
+            }
+
+            // Search bar for cylinders
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search cylinders by serial number...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = Color(0xFF2f80eb)
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = Color(0xFF2f80eb)
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFF2f80eb),
+                    unfocusedBorderColor = Color.LightGray,
+                    backgroundColor = Color.White
+                ),
+                singleLine = true
+            )
+
+            // Cylinder groups display
             Box(
                 modifier = Modifier
-                    .fillMaxWidth().weight(3f)
+                    .fillMaxWidth()
+                    .weight(1f) // Take available space
             ) {
-
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    groupedCylinders.forEach { (group, cylinders) ->
-                        item {
+                if (groupedCylinders.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No cylinders found",
+                            fontSize = 16.sp,
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        items(groupedCylinders.entries.toList()) { (group, cylinders) ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -360,26 +416,49 @@ fun CustomerDetailsScreenUI(
                                 shape = RoundedCornerShape(8.dp),
                                 backgroundColor = Color(0xFFE8F5E9)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(8.dp)
+                                Row(
+                                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = "Gas Type: ${group.first}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = Color.Black
-                                    )
-                                    Text(
-                                        text = "Volume Type: ${group.second}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = Color.Black
-                                    )
-                                    Text(
-                                        text = "Quantity: ${cylinders.size}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = Color.Black
+                                    // Cylinder count indicator
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(Color(0xFF2f80eb), shape = CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "${cylinders.size}",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(16.dp))
+
+                                    // Cylinder information
+                                    Column(
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = "${group.first ?: "Unknown"} - ${group.second ?: "Unknown"}",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp,
+                                            color = Color.Black
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "View ${cylinders.size} cylinder${if (cylinders.size > 1) "s" else ""}",
+                                            fontSize = 14.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "View details",
+                                        tint = Color(0xFF2f80eb)
                                     )
                                 }
                             }
@@ -388,80 +467,187 @@ fun CustomerDetailsScreenUI(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            // Fixed space for LPG Issued
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth() // Fixed height for the section
-            ) {
-                if (lpgIssued != null) {
-                    Text(
-                        text = "LPG Issued",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth()
-                    )
-                    LpgIssuedSection(lpgIssued = lpgIssued!!)
-                } else {
-                    // Show loading or error message
-                    Text(
-                        text = "No LPG Cylinders Issued",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-
-                    )
-                }
+            // LPG Issued section
+            if (lpgIssued != null) {
+                Text(
+                    text = "LPG Issued",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .fillMaxWidth()
+                )
+                LpgIssuedSection(lpgIssued = lpgIssued!!)
+            } else {
+                // Show loading or error message
+                Text(
+                    text = "No LPG Cylinders Issued",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+
+            // Improved Cylinder List Dialog
             if (isDialogOpen && selectedGroup != null) {
                 val serialNumbers = groupedCylinders[selectedGroup]?.map { it } ?: emptyList()
                 AlertDialog(
                     onDismissRequest = { isDialogOpen = false },
-                    title = {
-                        Text(
-                            text = "Serial Numbers",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = Color(0xFF2f80eb)
-                        )
-                    },
+                    title = null, // We'll create our own custom title in the content
                     text = {
-                        LazyColumn(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .wrapContentHeight()
                         ) {
-                            items(serialNumbers) { serialNumber ->
+                            // Company header
+                            Card(
+                                backgroundColor = Color(0xFF2f80eb),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = COMPANY_NAME,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Customer: $customerName",
+                                        fontSize = 14.sp,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            // Title with gas type information
+                            Text(
+                                text = "Cylinder List - ${selectedGroup?.first ?: "Unknown Gas"} (${selectedGroup?.second ?: "Unknown Volume"})",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color(0xFF2f80eb),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            // Table header
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFE8F5E9))
+                                    .padding(vertical = 8.dp, horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = serialNumber,
-                                    fontSize = 16.sp,
+                                    text = "#",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black,
-                                    modifier = Modifier.padding(vertical = 4.dp)
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.weight(0.2f)
                                 )
+                                Text(
+                                    text = "Serial Number",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.weight(0.8f)
+                                )
+                            }
+
+                            Divider(color = Color.LightGray)
+
+                            // Table content
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp) // Set a fixed height for scrolling
+                            ) {
+                                itemsIndexed(serialNumbers) { index, serialNumber ->
+                                    Column {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp, horizontal = 16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${index + 1}",
+                                                fontSize = 14.sp,
+                                                modifier = Modifier.weight(0.2f),
+                                                textAlign = TextAlign.Center
+                                            )
+                                            Text(
+                                                text = serialNumber,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.weight(0.8f)
+                                            )
+                                        }
+                                        if (index < serialNumbers.size - 1) {
+                                            Divider(
+                                                color = Color.LightGray,
+                                                modifier = Modifier.padding(horizontal = 16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Summary at the bottom
+                            Card(
+                                backgroundColor = Color(0xFFF5F5F5),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Total Cylinders: ${serialNumbers.size}",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                    val now = Clock.System.now()
+                                    val localDateTime = now.toLocalDateTime(TimeZone.currentSystemDefault())
+                                    Text(
+                                        text = "Date: ${
+                                            "${localDateTime.dayOfMonth.toString().padStart(2, '0')}-${localDateTime.monthNumber.toString().padStart(2, '0')}-${localDateTime.year}"
+                                        }",
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
                             }
                         }
                     },
-                    confirmButton = {
-                        Button(
-                            onClick = { isDialogOpen = false },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb))
+                    buttons = {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.End
                         ) {
-                            Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
+                            Button(
+                                onClick = { isDialogOpen = false },
+                                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb))
+                            ) {
+                                Text("Close", color = Color.White)
+                            }
                         }
                     }
                 )
             }
 
+            // View Transactions Button
             Button(
-                onClick = { component.onEvent(CustomerDetailsScreenEvent.OnTransactionClick(customerName, cylinderDetail))
-                },
+                onClick = { component.onEvent(CustomerDetailsScreenEvent.OnTransactionClick(customerName, cylinderDetail)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp, start = 16.dp, end = 16.dp),
+                    .padding(16.dp),
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb))
             ) {
                 Text(
@@ -474,26 +660,7 @@ fun CustomerDetailsScreenUI(
     }
 }
 
-@Composable
-private fun CompactDetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 1.dp) // Reduced vertical padding
-    ) {
-        Text(
-            text = "$label:",
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp, // Reduced font size
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = value,
-            fontSize = 12.sp, // Reduced font size
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
+
 
 @Composable
 private fun LpgIssuedSection(lpgIssued: Map<String, String>) {
@@ -529,92 +696,7 @@ private fun LpgIssuedSection(lpgIssued: Map<String, String>) {
     }
 }
 
-// Rest of the code remains unchanged...
 
-// Rest of the code remains unchanged...
-@Composable
-private fun SearchHeader(
-    isSearchActive: Boolean,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onSearchActiveChange: (Boolean) -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp) // Horizontal padding of 16.dp
-    ) {
-        AnimatedVisibility(
-            visible = isSearchActive,
-            enter = slideInHorizontally(initialOffsetX = { fullWidth -> fullWidth }),
-            exit = slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth }),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null)
-                },
-                trailingIcon = {
-                    IconButton(onClick = {
-                        onSearchQueryChange("")
-                        onSearchActiveChange(false)
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "Close"
-                        )
-                    }
-                },
-                placeholder = { Text("Search issued cylinders...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp), // Fixed height for the search bar
-                shape = RoundedCornerShape(8.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color(0xFF2f80eb),
-                    unfocusedBorderColor = Color(0xFF2f80eb)
-                ),
-                singleLine = true,
-                visualTransformation = VisualTransformation.None
-            )
-        }
-
-        AnimatedVisibility(
-            visible = !isSearchActive,
-            enter = slideInHorizontally(initialOffsetX = { fullWidth -> -fullWidth }),
-            exit = slideOutHorizontally(targetOffsetX = { fullWidth -> -fullWidth }),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp) // Fixed height for the row
-                    .padding(vertical = 4.dp), // Reduced vertical padding
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Currently Issued Cylinders",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp, // Slightly larger font size
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp) // Horizontal padding of 16.dp
-                )
-                IconButton(
-                    onClick = { onSearchActiveChange(true) },
-                    modifier = Modifier.size(24.dp) // Slightly larger icon button size
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon"
-                    )
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
