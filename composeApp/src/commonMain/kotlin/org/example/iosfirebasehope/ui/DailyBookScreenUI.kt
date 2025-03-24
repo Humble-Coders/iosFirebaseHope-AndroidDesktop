@@ -365,6 +365,7 @@ fun DailyBookScreenUI(
                         DailyTransactionCard(
                             transaction = transaction,
                             onClick = {
+                                component.onEvent(DailyBookScreenEvent.OnTransactionClick(transaction.customerName, transaction.dateTime))
 
                             }
                         )

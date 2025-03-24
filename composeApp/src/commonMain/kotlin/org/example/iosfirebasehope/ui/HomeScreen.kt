@@ -1,5 +1,6 @@
 package org.example.iosfirebasehope.ui
 
+import kotlinx.coroutines.async
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,12 +19,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -52,7 +55,11 @@ import iosfirebasehope.composeapp.generated.resources.full
 import iosfirebasehope.composeapp.generated.resources.issued
 import iosfirebasehope.composeapp.generated.resources.repair
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.example.iosfirebasehope.navigation.components.HomeScreenComponent
 import org.example.iosfirebasehope.navigation.events.HomeScreenEvent
@@ -154,7 +161,7 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                     )
                     Divider(color = Color.Gray, thickness = 1.dp)
                     DrawerItem(
-                        icon = Icons.Default.Info,
+                        icon = Icons.Default.Person,
                         text = "Vendor Details",
                         onClick = {
                             component.onEvent(HomeScreenEvent.OnAllVendorClick(cylinderDetailsList,gasList))
@@ -164,7 +171,7 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                     Divider(color = Color.Gray, thickness = 1.dp)
 
                     DrawerItem(
-                        icon = Icons.Default.Info,
+                        icon = Icons.Default.Add,
                         text = "Add New Customer",
                         onClick = {
                             showAddCustomerDialog = true
@@ -182,7 +189,7 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                         Divider(color = Color.Gray, thickness = 1.dp)
 
                         DrawerItem(
-                            icon = Icons.Default.Info,
+                            icon = Icons.Default.List,
                             text = "Issued List",
                             onClick = {
                                 component.onEvent(HomeScreenEvent.onCurrentlyIssuedClick(cylinderDetailsList))
@@ -191,10 +198,28 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                         Divider(color = Color.Gray, thickness = 1.dp)
 
                         DrawerItem(
-                            icon = Icons.Default.Info,
+                            icon = Icons.Default.MailOutline,
                             text = "Daily Book",
                             onClick = {
                                 component.onEvent(HomeScreenEvent.OnDailyBookClick)
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+
+                        DrawerItem(
+                            icon = Icons.Default.AddCircle,
+                            text = "Add Inventory",
+                            onClick = {
+                                component.onEvent(HomeScreenEvent.onAddInventoryScreen)
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+
+                        DrawerItem(
+                            icon = Icons.Default.Person,
+                            text = "Inventory Vendors",
+                            onClick = {
+                                component.onEvent(HomeScreenEvent.onInventoryVendorScreen)
                             }
                         )
                         Divider(color = Color.Gray, thickness = 1.dp)
@@ -488,16 +513,16 @@ fun CylinderCard(cylinder: Cylinder, component: HomeScreenComponent, cylinderDet
 
 
 suspend fun SortCylindersData(cylinderDetailsList: List<Map<String, String>>, gasDocuments: List<DocumentSnapshot>, db: FirebaseFirestore): List<Cylinder> {
-    val cylindersList = mutableListOf<Cylinder>()
+    // Preallocate with exact capacity to avoid resizing
+    val cylindersList = ArrayList<Cylinder>(cylinderDetailsList.size)
 
-    // Parse the cylinder details into CylinderDetail objects
-    val cylinderDetails = cylinderDetailsList.mapNotNull { map ->
+    // Use a more efficient direct conversion approach - no intermediate collection
+    val cylinderDetails = ArrayList<CylinderDetail>(cylinderDetailsList.size)
+    for (map in cylinderDetailsList) {
         val gasName = map["Gas Type"]
         val status = map["Status"]
         if (gasName != null && status != null) {
-            CylinderDetail(gasName, status)
-        } else {
-            null
+            cylinderDetails.add(CylinderDetail(gasName, status))
         }
     }
 
@@ -592,27 +617,40 @@ data class CylinderDetail(
     val status: String
 )
 
-suspend fun allCylinderDetails(db: FirebaseFirestore): List<Map<String, String>> {
-    val cylindersList = mutableListOf<Cylinder>()
 
-    // Fetch all gas names from the "Gases" collection
-    val gasDocuments = db.collection("Gases").get().documents
 
-    // Fetch the cylinder details from the "Cylinders" collection
-    val cylinderDocument = db.collection("Cylinders").document("Cylinders").get()
+suspend fun allCylinderDetails(db: FirebaseFirestore): List<Map<String, String>> = coroutineScope {
+    // Remove unused variable since cylindersList is declared but never used
 
-    // Safely cast the CylinderDetails field to a list of maps
+    // Run parallel Firestore requests using coroutines
+    val gasDocumentsDeferred = async(Dispatchers.IO) {
+        db.collection("Gases").get().documents
+    }
+
+    val cylinderDocumentDeferred = async(Dispatchers.IO) {
+        db.collection("Cylinders").document("Cylinders").get()
+    }
+
+    // Wait for both operations to complete
+    val cylinderDocument = cylinderDocumentDeferred.await()
+
+    // We still await gasDocumentsDeferred even though we don't use the result
+    // to maintain the same behavior as the original function
+    gasDocumentsDeferred.await()
+
+    // Safely cast and return the result
+    @Suppress("UNCHECKED_CAST")
     val cylinderDetailsList =
         cylinderDocument.get("CylinderDetails") as? List<Map<String, String>> ?: emptyList()
+
     println("CylinderDetails List: $cylinderDetailsList")
 
-    return cylinderDetailsList
+    cylinderDetailsList
 }
 
-suspend fun gasDocuments(db: FirebaseFirestore): List<DocumentSnapshot> {
-    // Fetch all gas names from the "Gases" collection
-    val gasDocuments = db.collection("Gases").get().documents
-    return gasDocuments
+suspend fun gasDocuments(db: FirebaseFirestore): List<DocumentSnapshot> = withContext(Dispatchers.IO) {
+    // Execute the Firestore query on the IO dispatcher for optimal network performance
+    db.collection("Gases").get().documents
 }
 
 data class CylinderDetails(

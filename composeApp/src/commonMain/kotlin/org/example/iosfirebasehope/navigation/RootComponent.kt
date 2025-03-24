@@ -9,6 +9,7 @@ import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.router.stack.replaceAll
 import kotlinx.serialization.Serializable
 import org.example.iosfirebasehope.navigation.components.AddCylinderScreenComponent
+import org.example.iosfirebasehope.navigation.components.AddInventoryScreenComponent
 import org.example.iosfirebasehope.navigation.components.AllCustomersScreenComponent
 import org.example.iosfirebasehope.navigation.components.AllCylinderDetailsScreenComponent
 import org.example.iosfirebasehope.navigation.components.AllVendorsScreenComponent
@@ -25,6 +26,8 @@ import org.example.iosfirebasehope.navigation.components.GenerateBillScreenCompo
 import org.example.iosfirebasehope.navigation.components.GenerateChallanScreenComponent
 import org.example.iosfirebasehope.navigation.components.HomeScreenComponent
 import org.example.iosfirebasehope.navigation.components.InventoryScreenComponent
+import org.example.iosfirebasehope.navigation.components.InventoryVendorDetailsScreenComponent
+import org.example.iosfirebasehope.navigation.components.InventoryVendorsScreenComponent
 import org.example.iosfirebasehope.navigation.components.IssueCylinderScreenComponent
 import org.example.iosfirebasehope.navigation.components.NewIssueCylinderScreenComponent
 import org.example.iosfirebasehope.navigation.components.NewOrChooseCustomerScreenComponent
@@ -107,6 +110,12 @@ class RootComponent(
                     },
                     onDailyBookClick = {
                         navigation.pushNew(Configuration.DailyBookScreen)
+                    },
+                    onAddInventoryClick = {
+                        navigation.pushNew(Configuration.AddInventoryScreen)
+                    },
+                    onInventoryVendorClick = {
+                        navigation.pushNew(Configuration.InventoryVendorScreen)
                     }
                 )
             )
@@ -456,7 +465,10 @@ class RootComponent(
                         navigation.pop()
                     },
                     customerName = config.customerName,
-                    dateTime = config.dateTime
+                    dateTime = config.dateTime,
+                    onBillClick = {
+                        navigation.pushNew(Configuration.GenerateBillScreen(config.customerName, config.dateTime))
+                    }
                 )
             )
             is Configuration.AllVendorScreen -> Child.AllVendorScreen(
@@ -557,7 +569,47 @@ class RootComponent(
                     componentContext = context,
                     onBackClick = {
                         navigation.pop()
+                    },
+                    onTransactionClick = { customerName, dateTime ->
+                        navigation.pushNew(
+                            Configuration.TransactionDetailsScreen(
+                                customerName = customerName,
+                                dateTime = dateTime
+                            )
+                        )
                     }
+
+                )
+            )
+            is Configuration.AddInventoryScreen -> Child.AddInventoryScreen(
+                AddInventoryScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    }
+                )
+            )
+            is Configuration.InventoryVendorScreen -> Child.InventoryVendorScreen(
+                InventoryVendorsScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    },
+                    onVendorClick = { vendorName ->
+                        navigation.pushNew(
+                            Configuration.InventoryVendorDetailsScreen(
+                                vendorName = vendorName
+                            ))
+                    }
+                )
+            )
+            is Configuration.InventoryVendorDetailsScreen -> Child.InventoryVendorDetailsScreen(
+                InventoryVendorDetailsScreenComponent(
+                    componentContext = context,
+                    onBackClick = {
+                        navigation.pop()
+                    },
+                    vendorDetails = config.vendorName
                 )
             )
         }
@@ -599,6 +651,9 @@ sealed class Child{
     data class CreditListScreen(val component: CreditListScreenComponent): Child()
     data class CurrentlyIssuedScreen(val component: CurrentlyIssuedScreenComponent): Child()
     data class DailyBookScreen ( val component: DailyBookScreenComponent): Child()
+    data class AddInventoryScreen ( val component: AddInventoryScreenComponent): Child()
+    data class InventoryVendorScreen ( val component: InventoryVendorsScreenComponent): Child()
+    data class InventoryVendorDetailsScreen ( val component: InventoryVendorDetailsScreenComponent): Child()
 }
 
 @Serializable  //converts from json to kotlin object
@@ -705,4 +760,14 @@ sealed class Configuration{
 
     @Serializable
     data object DailyBookScreen: Configuration()
+
+    @Serializable
+    data object AddInventoryScreen: Configuration()
+
+    @Serializable
+    data object InventoryVendorScreen: Configuration()
+
+    @Serializable
+    data class InventoryVendorDetailsScreen(val vendorName:String) : Configuration()
+
 }

@@ -16,4 +16,7 @@ interface HomeScreenEvent {
     data object onCreditListClick : HomeScreenEvent
     data class onCurrentlyIssuedClick (val cylinderDetailsList : List<Map<String, String>> )    : HomeScreenEvent
     data object OnDailyBookClick : HomeScreenEvent
+    data object onAddInventoryScreen : HomeScreenEvent
+    data object onInventoryVendorScreen : HomeScreenEvent
+
 }

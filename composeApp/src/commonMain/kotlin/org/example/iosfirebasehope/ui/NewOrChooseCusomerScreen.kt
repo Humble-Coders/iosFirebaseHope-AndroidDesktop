@@ -25,7 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -111,7 +111,7 @@ fun NewOrChooseCustomerScreenUI(component: NewOrChooseCustomerScreenComponent, d
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Color.White
                         )
@@ -553,12 +553,7 @@ suspend fun saveCustomerToFirestore2(
             .document(customerName)
             .set(mapOf("Details" to listOf<Map<String, String>>()))
 
-        val transactionsRef = db.collection("Customers")
-            .document("Transactions")
-            .collection("Names")
-            .document(customerName)
 
-        transactionsRef.set(emptyMap<String, Any>())
 
         // Add new customer entry to the Names document
         val customerEntry = mapOf("Name" to customerName, "Phone Number" to customerPhone)

@@ -1,6 +1,8 @@
 package org.example.iosfirebasehope.ui
 
 
+
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
@@ -49,6 +51,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,6 +79,8 @@ import org.example.iosfirebasehope.navigation.components.SendForRefillingCompone
 import org.example.iosfirebasehope.navigation.events.SendForRefillingEvent
 
 
+
+
 @Composable
 fun SendForRefillingScreenUI(
     component: SendForRefillingComponent,
@@ -85,7 +90,11 @@ fun SendForRefillingScreenUI(
 
 
 
+
+
+
     // Use the platform-specific BackButtonHandler
+
 
     // Existing state variables
     val details = remember { mutableStateOf<Map<String, String>?>(null) }
@@ -103,27 +112,38 @@ fun SendForRefillingScreenUI(
     var alreadySelectedCylinders by remember { mutableStateOf<List<String>>(emptyList()) }
     var alreadySelectedLPGQuantities by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
+
     var currentDateTime by remember {mutableStateOf("")}
+
+
+
 
 
 
     var isBackButtonEnabled = remember { mutableStateOf(true) }
 
+
     // New state variables for date pickers
     var showIssueDatePicker by remember { mutableStateOf(false) }
     var selectedIssueDate by remember { mutableStateOf<Long?>(null) }
 
+
     // State variable for bottom buttons visibility
     var showBottomButtons by remember { mutableStateOf(true) }
 
+
     // State variable for checkout dialog
     var showCheckoutDialog by remember { mutableStateOf(false) }
+
 
     // State variable for validation dialog
     var showValidationDialog by remember { mutableStateOf(false) }
     var validationMessage by remember { mutableStateOf("") }
 
+
     // Calculate the real-time total price
+
+
 
 
     // Fetch all fields from Firestore
@@ -134,13 +154,16 @@ fun SendForRefillingScreenUI(
             .document(VendorName)
             .get()
 
+
         // Extract the "Details" map from the document
         details.value = document.get("Details") as? Map<String, String>
+
 
         // Extract the "Deposit", "Credit", and "Phone Number" values from the "Details" map
         creditValue.value = details.value?.get("Credit")?.toString()
         phoneNumberValue.value = details.value?.get("Phone Number")?.toString()
     }
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Top bar with higher zIndex to ensure it stays on top
@@ -168,6 +191,7 @@ fun SendForRefillingScreenUI(
                     )
                 }
 
+
                 Text(
                     text = "Send For Refilling",
                     fontWeight = FontWeight.Bold,
@@ -177,6 +201,7 @@ fun SendForRefillingScreenUI(
                 )
             }
         }
+
 
         // Main content (below the top bar)
         Scaffold(
@@ -215,6 +240,7 @@ fun SendForRefillingScreenUI(
                             }
                             Divider()
 
+
                             // Display "Phone", "Deposit", and "Credit" in a single row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -238,6 +264,7 @@ fun SendForRefillingScreenUI(
                                     )
                                 }
 
+
                                 // Column for values
                                 Column(
                                     modifier = Modifier.weight(1f),
@@ -259,6 +286,7 @@ fun SendForRefillingScreenUI(
                             }
                         }
                     }
+
 
                     // Add buttons below the grey box
                     Row(
@@ -290,9 +318,13 @@ fun SendForRefillingScreenUI(
                         }
 
 
+
+
                     }
 
+
                     Spacer(modifier = Modifier.height(10.dp))
+
 
                     // "Current Cart" text with a Divider in the same row
                     Row(
@@ -316,6 +348,8 @@ fun SendForRefillingScreenUI(
                     }
 
 
+
+
                     CombinedListRef(
                         issuedCylinders = issuedCylinders,
                         onDeleteCylinder = { cylinder ->
@@ -324,15 +358,18 @@ fun SendForRefillingScreenUI(
                                 it.gasType == cylinder.gasType && it.volumeType == cylinder.volumeType
                             }
 
+
                             // Update the issuedCylinders list by removing the deleted cylinders
                             issuedCylinders = issuedCylinders.filterNot {
                                 it.gasType == cylinder.gasType && it.volumeType == cylinder.volumeType
                             }
 
+
                             // Remove the serial numbers of the deleted cylinders from alreadySelectedCylinders
                             alreadySelectedCylinders = alreadySelectedCylinders.filterNot { serialNumber ->
                                 deletedCylinders.any { it.serialNumber == serialNumber }
                             }
+
 
                             // If the deleted cylinders are LPG, update the alreadySelectedLPGQuantities
                             if (cylinder.gasType == "LPG") {
@@ -351,6 +388,7 @@ fun SendForRefillingScreenUI(
                 }
             }
         }
+
 
         // Overlay the Add Cylinder dialog box on top of everything (but under the top bar)
         if (showAddCylinderDialog) {
@@ -387,6 +425,10 @@ fun SendForRefillingScreenUI(
                 )
             }
         }
+
+
+
+
 
 
 
@@ -446,8 +488,10 @@ fun SendForRefillingScreenUI(
                         }
                     }
 
+
                     // Return Date Button
                 }
+
 
                 // Second Row: Total Button (full width)
                 Button(
@@ -481,6 +525,7 @@ fun SendForRefillingScreenUI(
             }
         }
 
+
         // Date picker modals
         if (showIssueDatePicker) {
             DatePickerModal(
@@ -493,8 +538,11 @@ fun SendForRefillingScreenUI(
         }
 
 
+
+
         if (showCheckoutDialog) {
             CheckoutDialogRef(
+
 
                 selectedIssueDate = selectedIssueDate,
                 onDismiss = { showCheckoutDialog = false },
@@ -504,6 +552,8 @@ fun SendForRefillingScreenUI(
                         val issueDateString = selectedIssueDate?.let {
                             LocalDate.fromEpochDays((it / (1000 * 60 * 60 * 24)).toInt()).toString()
                         } ?: ""
+
+
 
 
                         // Push transaction details to Firestore
@@ -516,7 +566,9 @@ fun SendForRefillingScreenUI(
                             credit = credit,
                             onCurrentDateTime = { currentDateTime = it }
 
+
                         )
+
 
                         if (success) {
                             component.onEvent(SendForRefillingEvent.OnChallanClick(VendorName, currentDateTime))
@@ -530,6 +582,7 @@ fun SendForRefillingScreenUI(
             )
         }
 
+
         // Validation dialog
         if (showValidationDialog) {
             ValidationDialogRef(
@@ -539,6 +592,7 @@ fun SendForRefillingScreenUI(
         }
     }
 }
+
 
 @Composable
 fun ValidationDialogRef(
@@ -560,6 +614,7 @@ fun ValidationDialogRef(
     )
 }
 
+
 fun validateCheckoutConditionsRef(
     issuedCylinders: List<IssuedCylinder>,
     selectedIssueDate: Long?
@@ -571,6 +626,7 @@ fun validateCheckoutConditionsRef(
     }
 }
 
+
 @Composable
 fun CheckoutDialogRef(
     selectedIssueDate: Long?,
@@ -580,6 +636,7 @@ fun CheckoutDialogRef(
     var cash by remember { mutableStateOf("") }
     var credit by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+
 
     AlertDialog(
         onDismissRequest = { if (!isLoading) onDismiss() },
@@ -609,6 +666,7 @@ fun CheckoutDialogRef(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
+
                 // Cash input
                 OutlinedTextField(
                     value = cash,
@@ -619,6 +677,7 @@ fun CheckoutDialogRef(
                     enabled = !isLoading
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+
 
                 // Credit input
                 OutlinedTextField(
@@ -655,6 +714,7 @@ fun CheckoutDialogRef(
     )
 }
 
+
 @Composable
 fun CombinedListRef(
     issuedCylinders: List<IssuedCylinder>,
@@ -681,6 +741,7 @@ fun CombinedListRef(
                     groupCylinders.sumOf { it.totalPrice }
                 }
 
+
                 // Create a grouped cylinder for display
                 val groupedCylinder = IssuedCylinder(
                     serialNumber = "", // Not needed for grouped card
@@ -690,12 +751,14 @@ fun CombinedListRef(
                     totalPrice = totalPrice
                 )
 
+
                 item {
                     IssuedCylinderCardRef(
                         cylinder = groupedCylinder,
                         onDelete = {
                             // Delete all cylinders in this group
                             groupCylinders.forEach { onDeleteCylinder(it) }
+
 
                             // If the group is LPG, update the alreadySelectedLPGQuantities
                             if (groupedCylinder.gasType == "LPG") {
@@ -713,8 +776,14 @@ fun CombinedListRef(
             }
 
 
+
+
     }
 }
+
+
+
+
 
 
 
@@ -729,11 +798,11 @@ fun AddCylinderDialogRef(
     alreadySelectedLPGQuantities: Map<String, Int>,
     isBackButtonEnabled: MutableState<Boolean>
 ) {
-    isBackButtonEnabled.value = false // Disable the back button for this dial,
+    isBackButtonEnabled.value = false // Disable the back button for this dialog
     var gasType by remember { mutableStateOf<String?>(null) }
     var volumeType by remember { mutableStateOf<String?>(null) }
     var quantity by remember { mutableStateOf("") }
-    var selectedCylinders by remember { mutableStateOf<List<String>>(emptyList()) }
+    var selectedCylinders by remember { mutableStateOf<List<String?>>(emptyList()) } // Changed to nullable values
     var prices by remember { mutableStateOf("") }
     var totalPrice by remember { mutableStateOf<Double>(0.0) }
     var cylinderOptions by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -744,13 +813,41 @@ fun AddCylinderDialogRef(
     var availableLPGQuantity by remember { mutableStateOf<Int?>(null) } // State for available LPG quantity
     var quantityError by remember { mutableStateOf<String?>(null) } // State for quantity error message
 
+
+    // Track currently selected cylinders in this dialog
+    var currentlySelectedCylinders by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+
     val coroutineScope = rememberCoroutineScope()
+
+
+    // Function to update available cylinders based on currently selected cylinders
+    fun updateAvailableCylinders() {
+        if (gasType != null && volumeType != null && gasType != "LPG") {
+            coroutineScope.launch {
+                // Fetch all available cylinders of this type and status
+                val allCylinders = fetchCylindersByStatus(db, gasType!!, volumeType!!, "Empty")
+
+
+                // Filter out cylinders that are already selected outside this dialog
+                availableCylinders = allCylinders.filter {
+                    it !in alreadySelectedCylinders && it !in currentlySelectedCylinders
+                }
+
+
+                println("Updated available cylinders: ${availableCylinders.size} cylinders available")
+                println("Currently selected in this dialog: ${currentlySelectedCylinders.joinToString()}")
+            }
+        }
+    }
+
 
     // Fetch gas types
     LaunchedEffect(Unit) {
         val gases = db.collection("Gases").get().documents
         cylinderOptions = gases.map { it.id }
     }
+
 
     // Fetch volume types when gasType changes
     LaunchedEffect(gasType) {
@@ -766,6 +863,7 @@ fun AddCylinderDialogRef(
         // Clear available LPG quantity when gas type changes
         availableLPGQuantity = null
     }
+
 
     // Fetch available cylinders when gasType or volumeType changes (only for non-LPG gas types)
     LaunchedEffect(gasType, volumeType) {
@@ -787,13 +885,30 @@ fun AddCylinderDialogRef(
         }
     }
 
-    // Initialize selectedCylinders when quantity changes (only for non-LPG gas types)
+
+    // Update selectedCylinders list when quantity changes
     LaunchedEffect(quantity.toIntOrNull()) {
         if (gasType != "LPG") {
             val quantityInt = quantity.toIntOrNull() ?: 0
-            selectedCylinders = List(quantityInt) { "" }
+
+
+            // Collect cylinders that were previously selected but will no longer be tracked
+            val previouslySelectedCylinders = selectedCylinders.filterNotNull()
+
+
+            // Initialize with nulls instead of empty strings
+            selectedCylinders = List(quantityInt) { null }
+
+
+            // Reset the currently selected cylinders
+            currentlySelectedCylinders = emptySet()
+
+
+            // Update available cylinders to reflect that previous selections are now available
+            updateAvailableCylinders()
         }
     }
+
 
     // Hide validation message after 3 seconds
     LaunchedEffect(showValidationMessage) {
@@ -803,6 +918,7 @@ fun AddCylinderDialogRef(
         }
     }
 
+
     // Hide quantity error message after 3 seconds
     LaunchedEffect(quantityError) {
         if (quantityError != null) {
@@ -810,6 +926,15 @@ fun AddCylinderDialogRef(
             quantityError = null
         }
     }
+
+
+    // Initial fetch of available cylinders
+    LaunchedEffect(gasType, volumeType) {
+        if (gasType != null && volumeType != null && gasType != "LPG") {
+            updateAvailableCylinders()
+        }
+    }
+
 
     LazyColumn(
         modifier = Modifier
@@ -822,6 +947,7 @@ fun AddCylinderDialogRef(
         item {
             Spacer(modifier = Modifier.height(100.dp))
         }
+
 
         // Dialog box content
         item {
@@ -843,14 +969,17 @@ fun AddCylinderDialogRef(
                     ) {
                         Text("Add Cylinder", fontWeight = FontWeight.Bold, fontSize = 20.sp)
 
+
                         // Gas Type Dropdown
                         Text("Gas Type", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
                         SearchableDropdownRef(
                             options = cylinderOptions,
                             selectedItem = gasType,
                             onItemSelected = { gasType = it },
+                            onClearSelection = { /* Gas type cleared */ },
                             placeholder = "Select Gas Type"
                         )
+
 
                         // Volume Type Dropdown
                         Text("Volume Type", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
@@ -858,8 +987,10 @@ fun AddCylinderDialogRef(
                             options = volumeOptions,
                             selectedItem = volumeType,
                             onItemSelected = { volumeType = it },
+                            onClearSelection = { /* Volume type cleared */ },
                             placeholder = "Select Volume Type"
                         )
+
 
                         // Display available LPG quantity if gasType is LPG
                         if (gasType == "LPG" && availableLPGQuantity != null) {
@@ -869,6 +1000,7 @@ fun AddCylinderDialogRef(
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         }
+
 
                         Text("Quantity", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
                         // Quantity Input
@@ -889,33 +1021,114 @@ fun AddCylinderDialogRef(
                             )
                         }
 
+
                         // Cylinder Dropdowns (only for non-LPG gas types)
-                        if (gasType != "LPG" && quantity.toIntOrNull() != null) {
-                            LaunchedEffect(quantity.toIntOrNull()) {
-                                localAlreadySelectedCylinders = emptyList()
-                                selectedCylinders = List(quantity.toInt()) { "" }
-                                if (gasType != null && volumeType != null) {
-                                    coroutineScope.launch {
-                                        val allCylinders = fetchCylindersByStatus(db, gasType!!, volumeType!!, "Empty")
-                                        availableCylinders = allCylinders.filter { it !in alreadySelectedCylinders }
+                        if (gasType != "LPG" && quantity.toIntOrNull() != null && quantity.toIntOrNull()!! > 0) {
+                            // We need a key to force re-composition when quantity changes
+                            key(quantity) {
+                                // Keep track of which indexes should be visible
+                                var visibleDropdowns by remember { mutableStateOf(List(quantity.toInt()) { true }) }
+
+
+                                Column {
+                                    repeat(quantity.toInt()) { index ->
+                                        // Only show this dropdown if it's marked as visible
+                                        if (visibleDropdowns[index]) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text("Cylinder ${index + 1}", fontWeight = FontWeight.Bold)
+                                                    SearchableDropdownRef(
+                                                        options = availableCylinders,
+                                                        selectedItem = selectedCylinders.getOrNull(index),
+                                                        onItemSelected = { selectedCylinder ->
+                                                            // Update selected cylinders list
+                                                            selectedCylinders = selectedCylinders.toMutableList().apply {
+                                                                set(index, selectedCylinder)
+                                                            }
+
+
+                                                            // Add to currently selected cylinders set
+                                                            currentlySelectedCylinders = currentlySelectedCylinders + selectedCylinder
+
+
+                                                            // Update available cylinders
+                                                            updateAvailableCylinders()
+                                                        },
+                                                        onClearSelection = {
+                                                            // If there was a cylinder selected previously, remove it from currentlySelectedCylinders
+                                                            val previousCylinder = selectedCylinders.getOrNull(index)
+                                                            if (previousCylinder != null) {
+                                                                currentlySelectedCylinders = currentlySelectedCylinders - previousCylinder
+
+
+                                                                // Update the selected cylinders list
+                                                                selectedCylinders = selectedCylinders.toMutableList().apply {
+                                                                    set(index, null)
+                                                                }
+
+
+                                                                // Update available cylinders
+                                                                updateAvailableCylinders()
+                                                            }
+                                                        },
+                                                        placeholder = "Select Cylinder"
+                                                    )
+                                                }
+
+
+                                                // Show remove icon only if the dropdown is empty and it's not the last visible dropdown
+                                                if (selectedCylinders.getOrNull(index) == null && visibleDropdowns.count { it } > 1) {
+                                                    Column(
+                                                        modifier = Modifier.height(80.dp), // Match the approximate height of the dropdown column
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        IconButton(
+                                                            onClick = {
+                                                                // Make this dropdown invisible
+                                                                visibleDropdowns = visibleDropdowns.toMutableList().apply {
+                                                                    set(index, false)
+                                                                }
+                                                            },
+                                                            modifier = Modifier.size(32.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Delete,
+                                                                contentDescription = "Remove cylinder",
+                                                                tint = Color.Red,
+                                                                modifier = Modifier.size(20.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                        }
                                     }
                                 }
-                            }
 
-                            repeat(quantity.toInt()) { index ->
-                                Text("Cylinder ${index + 1}", fontWeight = FontWeight.Bold)
-                                SearchableDropdownRef(
-                                    options = availableCylinders,
-                                    selectedItem = selectedCylinders.getOrNull(index),
-                                    onItemSelected = { selectedCylinder ->
-                                        selectedCylinders = selectedCylinders.toMutableList().apply { set(index, selectedCylinder) }
-                                        localAlreadySelectedCylinders = localAlreadySelectedCylinders + selectedCylinder + alreadySelectedCylinders
-                                        availableCylinders = availableCylinders.filter { it != localAlreadySelectedCylinders[index] }
-                                    },
-                                    placeholder = "Select Cylinder",
-                                )
+
+                                // Store visible dropdowns state for use in validation
+                                LaunchedEffect(visibleDropdowns) {
+                                    // Store the current visible dropdowns for validation
+                                    val visibleIndices = visibleDropdowns.mapIndexedNotNull { i, visible ->
+                                        if (visible) i else null
+                                    }
+
+
+                                    // Update currentlySelectedCylinders based on visible dropdowns only
+                                    currentlySelectedCylinders = selectedCylinders
+                                        .filterIndexed { index, cylinder ->
+                                            visibleDropdowns.getOrNull(index) == true && cylinder != null
+                                        }
+                                        .filterNotNull()
+                                        .toSet()
+                                }
                             }
                         }
+
 
                         // Buttons
                         Row(
@@ -934,20 +1147,30 @@ fun AddCylinderDialogRef(
                                 )
                             }
 
+
                             // Cancel Button
-                            TextButton(onClick = onDismiss
-                            ) {
+                            TextButton(onClick = onDismiss) {
                                 Text("Cancel", color = Color(0xFF2f80eb))
                             }
 
+
                             Spacer(modifier = Modifier.width(8.dp))
+
 
                             // Add Button
                             Button(
                                 onClick = {
                                     // Check if all fields are filled
-                                    if (gasType.isNullOrEmpty() || volumeType.isNullOrEmpty() || quantity.isEmpty()  || (gasType != "LPG" && selectedCylinders.any { it.isEmpty() })) {
+                                    if (gasType.isNullOrEmpty() || volumeType.isNullOrEmpty() || quantity.isEmpty()) {
                                         showValidationMessage = true
+                                        return@Button
+                                    }
+
+
+                                    // For non-LPG, check that we have at least one selected cylinder
+                                    if (gasType != "LPG" && selectedCylinders.filterNotNull().isEmpty()) {
+                                        showValidationMessage = true
+                                        return@Button
                                     } else {
                                         val quantityInt = quantity.toIntOrNull() ?: 0
                                         if (gasType == "LPG" && availableLPGQuantity != null) {
@@ -971,7 +1194,7 @@ fun AddCylinderDialogRef(
                                             )
                                         } else {
                                             // For non-LPG gas types, create IssuedCylinder for each selected cylinder
-                                            selectedCylinders.forEach { serialNumber ->
+                                            selectedCylinders.filterNotNull().forEach { serialNumber ->
                                                 onAddCylinder(
                                                     IssuedCylinder(
                                                         serialNumber = serialNumber,
@@ -983,7 +1206,7 @@ fun AddCylinderDialogRef(
                                                 )
                                             }
                                         }
-                                        onUpdateAlreadySelectedCylinders(localAlreadySelectedCylinders)
+                                        onUpdateAlreadySelectedCylinders(alreadySelectedCylinders + currentlySelectedCylinders.toList())
                                         onDismiss()
                                     }
                                 },
@@ -997,13 +1220,13 @@ fun AddCylinderDialogRef(
             }
         }
 
+
         // Bottom transparent spacer
         item {
             Spacer(modifier = Modifier.height(500.dp))
         }
     }
 }
-
 
 
 @Composable
@@ -1018,6 +1241,7 @@ fun SearchableDropdownRef(
     var expanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf(selectedItem ?: "") }
     val filteredOptions = options.filter { it.contains(searchQuery, ignoreCase = true) }
+
 
     Box(modifier = modifier.fillMaxWidth()) {
         Column {
@@ -1042,6 +1266,7 @@ fun SearchableDropdownRef(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
+
 
             if (expanded) {
                 Box(
@@ -1083,6 +1308,7 @@ fun SearchableDropdownRef(
     }
 }
 
+
 suspend fun checkoutCylindersRef(
     db: FirebaseFirestore,
     VendorName: String?,
@@ -1094,6 +1320,7 @@ suspend fun checkoutCylindersRef(
 ): Boolean {
     if (VendorName == null || issueDate.isEmpty()) return false
 
+
     try {
         // Get the current date and time
         val currentTime = Clock.System.now()
@@ -1101,23 +1328,28 @@ suspend fun checkoutCylindersRef(
             .time
             .toString()
 
+
         // Combine issueDate with current time
         val dateTimeString = "${issueDate}_${currentTime}"
             .replace(":", "-")
             .substringBefore(".")
 
+
         onCurrentDateTime(dateTimeString)
+
 
         // Pre-process data for faster operations
         val nonLpgCylinders = issuedCylinders.filter { it.gasType != "LPG" }
         val lpgCylinders = issuedCylinders.filter { it.gasType == "LPG" }
         val nonLpgCylinderSerialNumbers = nonLpgCylinders.map { it.serialNumber }
 
+
         // Prepare transaction data
         val transactionsRef = db.collection("TransactionVendor")
             .document(VendorName)
             .collection("DateAndTime")
             .document(dateTimeString)
+
 
         // Prepare cylinders issued data
         val cylindersIssued = nonLpgCylinders.map { cylinder ->
@@ -1126,6 +1358,7 @@ suspend fun checkoutCylindersRef(
                 "Issue Date" to issueDate
             )
         }
+
 
         // Prepare LPG issued data
         val lpgIssued = lpgCylinders.groupBy { it.volumeType }.map { (volumeType, cylinders) ->
@@ -1136,9 +1369,11 @@ suspend fun checkoutCylindersRef(
             )
         }
 
+
         // Prepare LPG quantity updates by volume type
         val lpgVolumeUpdates = lpgCylinders.groupBy { it.volumeType.replace(".", ",") }
             .mapValues { (_, cylinders) -> cylinders.sumOf { it.quantity } }
+
 
         // Parallelize independent operations using coroutineScope
         coroutineScope {
@@ -1146,11 +1381,14 @@ suspend fun checkoutCylindersRef(
             val createTransactionTask = async {
                 val batch = db.batch()
 
+
                 // Main transaction document
                 batch.set(transactionsRef, mapOf("Date" to dateTimeString))
 
+
                 // Transaction details collection
                 val transactionDetailsRef = transactionsRef.collection("Transaction Details")
+
 
                 batch.set(transactionDetailsRef.document("Cash"), mapOf("Amount" to cash))
                 batch.set(transactionDetailsRef.document("Credit"), mapOf("Amount" to credit))
@@ -1158,9 +1396,11 @@ suspend fun checkoutCylindersRef(
                 batch.set(transactionDetailsRef.document("Cylinders Returned"), mapOf("CylindersReturned" to emptyList<String>()))
                 batch.set(transactionDetailsRef.document("LPG Issued"), mapOf("LPGIssued" to lpgIssued))
 
+
                 // Execute all transaction-related operations as a single batch
                 batch.commit()
             }
+
 
             // Task 2: Update non-LPG cylinders in Vendors/Issued Cylinders
             val updateIssuedCylindersTask = async {
@@ -1170,6 +1410,7 @@ suspend fun checkoutCylindersRef(
                         .collection("Names")
                         .document(VendorName)
 
+
                     val snapshot = issuedCylindersRef.get()
                     val existingDetails = if (snapshot.exists) {
                         snapshot.get("Details") as? List<String> ?: emptyList()
@@ -1177,13 +1418,16 @@ suspend fun checkoutCylindersRef(
                         emptyList()
                     }
 
+
                     // Add new serial numbers to the existing array
                     val updatedDetails = existingDetails + nonLpgCylinderSerialNumbers
+
 
                     // Update the document with the new array
                     issuedCylindersRef.set(mapOf("Details" to updatedDetails))
                 }
             }
+
 
             // Task 3: Update LPG quantities in Vendors/LPG Issued
             val updateLpgIssuedTask = async {
@@ -1193,6 +1437,7 @@ suspend fun checkoutCylindersRef(
                         .collection("Names")
                         .document(VendorName)
 
+
                     val snapshot = lpgIssuedRef.get()
                     val existingLpgQuantities = if (snapshot.exists) {
                         snapshot.get("Quantities") as? Map<String, String> ?: emptyMap()
@@ -1200,8 +1445,10 @@ suspend fun checkoutCylindersRef(
                         emptyMap()
                     }
 
+
                     // Update quantities for each volume type
                     val mergedLpgQuantities = existingLpgQuantities.toMutableMap()
+
 
                     lpgVolumeUpdates.forEach { (volumeType, quantity) ->
                         val existingQuantity = existingLpgQuantities[volumeType]?.toIntOrNull() ?: 0
@@ -1209,15 +1456,18 @@ suspend fun checkoutCylindersRef(
                         mergedLpgQuantities[volumeType] = newQuantity.toString()
                     }
 
+
                     // Update the document with the merged map
                     lpgIssuedRef.set(mapOf("Quantities" to mergedLpgQuantities))
                 }
             }
 
+
             // Task 4: Update CylinderDetails status
             val updateCylinderStatusTask = async {
                 if (nonLpgCylinderSerialNumbers.isNotEmpty()) {
                     val cylindersRef = db.collection("Cylinders").document("Cylinders")
+
 
                     val snapshot = cylindersRef.get()
                     val cylinderDetails = if (snapshot.exists) {
@@ -1226,8 +1476,10 @@ suspend fun checkoutCylindersRef(
                         emptyList()
                     }
 
+
                     // Create a lookup set for faster checking
                     val serialNumberSet = nonLpgCylinderSerialNumbers.toSet()
+
 
                     // Update the status for cylinders
                     val updatedCylinderDetails = cylinderDetails.map { cylinder ->
@@ -1240,10 +1492,12 @@ suspend fun checkoutCylindersRef(
                         }
                     }
 
+
                     // Save the updated CylinderDetails array back to Firestore
                     cylindersRef.set(mapOf("CylinderDetails" to updatedCylinderDetails))
                 }
             }
+
 
             // Task 5: Update Vendor Credit
             val updateVendorCreditTask = async {
@@ -1252,23 +1506,28 @@ suspend fun checkoutCylindersRef(
                     .collection("Names")
                     .document(VendorName)
 
+
                 val customerDetailsSnapshot = customerDetailsRef.get()
                 if (customerDetailsSnapshot.exists) {
                     val detailsMap = customerDetailsSnapshot.get("Details") as? Map<String, String> ?: emptyMap()
 
+
                     // Increment the "Credit" field
                     val currentCredit = detailsMap["Credit"]?.toDoubleOrNull() ?: 0.0
                     val newCredit = currentCredit + (credit.toDoubleOrNull() ?: 0.0)
+
 
                     // Create the updated map
                     val updatedDetailsMap = detailsMap.toMutableMap().apply {
                         this["Credit"] = newCredit.toString()
                     }
 
+
                     // Save the updated map back to Firestore
                     customerDetailsRef.update("Details" to updatedDetailsMap)
                 }
             }
+
 
             // Task 6: Update LPG Empty quantities
             val updateLpgEmptyTask = async {
@@ -1276,19 +1535,23 @@ suspend fun checkoutCylindersRef(
                     val lpgDocumentRef = db.collection("Cylinders").document("LPG")
                     val lpgDocumentSnapshot = lpgDocumentRef.get()
 
+
                     if (lpgDocumentSnapshot.exists) {
                         val lpgEmptyMap = lpgDocumentSnapshot.get("LPGEmpty") as? Map<String, Int> ?: emptyMap()
                         val updatedLpgEmptyMap = lpgEmptyMap.toMutableMap()
+
 
                         lpgVolumeUpdates.forEach { (volumeType, quantity) ->
                             val currentQuantity = updatedLpgEmptyMap[volumeType] ?: 0
                             updatedLpgEmptyMap[volumeType] = currentQuantity - quantity
                         }
 
+
                         lpgDocumentRef.update("LPGEmpty" to updatedLpgEmptyMap)
                     }
                 }
             }
+
 
             // Await all parallel tasks to complete
             awaitAll(
@@ -1301,6 +1564,7 @@ suspend fun checkoutCylindersRef(
             )
         }
 
+
         // Create collections for each non-LPG cylinder in Cylinders > Vendors
         // This part can't be easily parallelized due to the iterative nature
         if (nonLpgCylinders.isNotEmpty()) {
@@ -1308,11 +1572,13 @@ suspend fun checkoutCylindersRef(
             nonLpgCylinders.chunked(10).forEach { cylinderBatch ->
                 val batch = db.batch()
 
+
                 cylinderBatch.forEach { cylinder ->
                     val cylinderRef = db.collection("Cylinders")
                         .document("Vendors")
                         .collection(cylinder.serialNumber)
                         .document("Refill To")
+
 
                     batch.set(cylinderRef, mapOf(
                         "name" to VendorName,
@@ -1320,9 +1586,11 @@ suspend fun checkoutCylindersRef(
                     ))
                 }
 
+
                 batch.commit()
             }
         }
+
 
         return true
     } catch (e: Exception) {
@@ -1330,6 +1598,8 @@ suspend fun checkoutCylindersRef(
         return false
     }
 }
+
+
 
 
 //suspend fun checkoutCylindersRef(
@@ -1557,12 +1827,18 @@ suspend fun checkoutCylindersRef(
 
 
 
+
+
+
+
+
 @Composable
 fun IssuedCylinderCardRef(
     cylinder: IssuedCylinder,
     onDelete: () -> Unit // Callback for delete button
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
+
 
     // Delete confirmation dialog
     if (showDeleteConfirmation) {
@@ -1591,6 +1867,7 @@ fun IssuedCylinderCardRef(
             }
         )
     }
+
 
     Card(
         modifier = Modifier
@@ -1622,7 +1899,9 @@ fun IssuedCylinderCardRef(
                     fontSize = 14.sp
                 )
 
+
             }
+
 
             // Bin icon (right side)
             IconButton(
@@ -1638,3 +1917,5 @@ fun IssuedCylinderCardRef(
         }
     }
 }
+
+

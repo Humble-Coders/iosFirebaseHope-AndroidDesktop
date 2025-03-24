@@ -35,16 +35,16 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
     val coroutineScope = rememberCoroutineScope()
     val scaffoldState = rememberScaffoldState()
 
-    // State for the dialog box
+    // State for the dialog box for editing only
     var showDialog by remember { mutableStateOf(false) }
 
-    // State for the form fields
+    // State for the form fields (used for editing)
     var itemName by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
     var selectedUnit by remember { mutableStateOf<String?>(null) }
     var customUnit by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") } // New state for Price
+    var price by remember { mutableStateOf("") }
 
     // State for the units dropdown
     var unitsDropdownExpanded by remember { mutableStateOf(false) }
@@ -56,16 +56,13 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
     // State for editing an item
     var itemToEdit by remember { mutableStateOf<Map<String, String>?>(null) }
 
-    // State for delete confirmation dialog
-
-
+    // State for deletion and PIN verification
     var itemToDelete by remember { mutableStateOf<Map<String, String>?>(null) }
     var showPinDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var enteredPin by remember { mutableStateOf("") }
     var isVerifyingPin by remember { mutableStateOf(false) }
     var showIncorrectPinDialog by remember { mutableStateOf(false) }
-
 
     // Fetch inventory items on launch
     LaunchedEffect(Unit) {
@@ -188,7 +185,7 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                     )
                 }
 
-                 //Delete Confirmation Dialog
+                // Delete Confirmation Dialog
                 if (showDeleteConfirmationDialog && itemToDelete != null) {
                     AlertDialog(
                         onDismissRequest = {
@@ -226,26 +223,6 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                         }
                     )
                 }
-                // Add Item Button
-                Button(
-                    onClick = {
-                        // Reset fields when opening the dialog for adding a new item
-                        itemName = ""
-                        quantity = ""
-                        selectedUnit = null
-                        customUnit = ""
-                        description = ""
-                        price = "" // Reset the price field
-                        itemToEdit = null
-                        showDialog = true
-                    },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Add Item", color = Color.White)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 // Display Inventory Items in Cards
                 LazyColumn {
@@ -259,7 +236,7 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                                 quantity = item["Quantity"] ?: ""
                                 selectedUnit = item["Units"]
                                 description = item["Description"] ?: ""
-                                price = item["Price"] ?: "" // Pre-fill the price field
+                                price = item["Price"] ?: ""
                                 showDialog = true
                             },
                             onDeleteClick = {
@@ -271,11 +248,11 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                     }
                 }
 
-                // Dialog Box for Adding/Editing Item
+                // Dialog Box for Editing Item
                 if (showDialog) {
                     AlertDialog(
                         onDismissRequest = { showDialog = false },
-                        title = { Text(if (itemToEdit == null) "Add New Item" else "Edit Item") },
+                        title = { Text("Edit Item") },
                         text = {
                             Column {
                                 // Item Name (disabled for editing)
@@ -284,7 +261,7 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                                     onValueChange = { itemName = it },
                                     label = { Text("Item Name") },
                                     modifier = Modifier.fillMaxWidth(),
-                                    enabled = itemToEdit == null // Disable editing for name
+                                    enabled = false // Always disable editing for name
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -357,17 +334,6 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                                         return@Button
                                     }
 
-                                    // Check if the item name already exists (only for adding new items)
-                                    if (itemToEdit == null && inventoryItems.any { it["Name"] == itemName }) {
-                                        coroutineScope.launch {
-                                            scaffoldState.snackbarHostState.showSnackbar(
-                                                "Item with this name already exists.",
-                                                duration = SnackbarDuration.Short
-                                            )
-                                        }
-                                        return@Button
-                                    }
-
                                     // Close the dialog immediately after clicking "Save"
                                     showDialog = false
 
@@ -380,7 +346,7 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                                         "Quantity" to quantity,
                                         "Units" to unitToSave!!,
                                         "Description" to description,
-                                        "Price" to price // Add the price field
+                                        "Price" to price
                                     )
 
                                     // Fetch the existing items, update the array, and save it back
@@ -395,11 +361,9 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                                                 emptyList()
                                             }
 
-                                            // Add or update the item in the list
-                                            val updatedItems = if (itemToEdit == null) {
-                                                existingItems + item
-                                            } else {
-                                                existingItems.map { if (it["Name"] == itemToEdit!!["Name"]) item else it }
+                                            // Update the item in the list
+                                            val updatedItems = existingItems.map {
+                                                if (it["Name"] == itemToEdit!!["Name"]) item else it
                                             }
 
                                             // Save the updated list back to Firestore
@@ -410,7 +374,7 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
 
                                             // Show success message
                                             scaffoldState.snackbarHostState.showSnackbar(
-                                                if (itemToEdit == null) "Item added successfully." else "Item updated successfully.",
+                                                "Item updated successfully.",
                                                 duration = SnackbarDuration.Short
                                             )
 
@@ -420,7 +384,7 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                                             selectedUnit = null
                                             customUnit = ""
                                             description = ""
-                                            price = "" // Reset the price field
+                                            price = ""
                                             itemToEdit = null
                                         } catch (e: Exception) {
                                             scaffoldState.snackbarHostState.showSnackbar(
@@ -448,38 +412,6 @@ fun InventoryScreenUI(component: InventoryScreenComponent, db: FirebaseFirestore
                         }
                     )
                 }
-
-                // Delete Confirmation Dialog
-//                if (itemToDelete != null) {
-//                    AlertDialog(
-//                        onDismissRequest = { itemToDelete = null },
-//                        title = { Text("Delete Item") },
-//                        text = { Text("Are you sure you want to delete this item?") },
-//                        confirmButton = {
-//                            Button(
-//                                onClick = {
-//                                    coroutineScope.launch {
-//                                        deleteItem(db, scaffoldState, itemToDelete!!, inventoryItems) { updatedItems ->
-//                                            inventoryItems = updatedItems
-//                                        }
-//                                        itemToDelete = null
-//                                    }
-//                                },
-//                                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb))
-//                            ) {
-//                                Text("Delete", color = Color.White)
-//                            }
-//                        },
-//                        dismissButton = {
-//                            Button(
-//                                onClick = { itemToDelete = null },
-//                                colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray)
-//                            ) {
-//                                Text("Cancel", color = Color.Black)
-//                            }
-//                        }
-//                    )
-//                }
             }
         }
     )
@@ -497,7 +429,7 @@ fun InventoryItemCard(
             .padding(vertical = 4.dp),
         elevation = 4.dp,
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, Color(0xFF2f80eb)) // Border color matching top bar
+        border = BorderStroke(1.dp, Color(0xFF2f80eb))
     ) {
         Box(
             modifier = Modifier.padding(16.dp)

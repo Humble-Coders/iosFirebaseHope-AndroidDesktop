@@ -8,6 +8,8 @@ class HomeScreenComponent(
     componentContext: ComponentContext,
     private val onStatusClick: (List<Map<String, String>>, String, List<String>) -> Unit,
     private val onCreditListClick: () -> Unit,
+    private val onInventoryVendorClick: () -> Unit,
+    private val onAddInventoryClick: () -> Unit,
     private val onDailyBookClick: () -> Unit,
     private val onCurrentlyIssuedClick: (List<Map<String,String>>) -> Unit,
     private val onAddCylinderClick: (List<Map<String,String>>) -> Unit,
@@ -34,6 +36,8 @@ class HomeScreenComponent(
             is HomeScreenEvent.onCreditListClick -> onCreditListClick()
             is HomeScreenEvent.onCurrentlyIssuedClick -> onCurrentlyIssuedClick(event.cylinderDetailsList)
             is HomeScreenEvent.OnDailyBookClick -> onDailyBookClick()
+            is HomeScreenEvent.onAddInventoryScreen -> onAddInventoryClick()
+            is HomeScreenEvent.onInventoryVendorScreen -> onInventoryVendorClick()
         }
     }
 }

@@ -1,5 +1,6 @@
 package org.example.iosfirebasehope.ui
 
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -73,6 +74,7 @@ import org.example.iosfirebasehope.navigation.components.ReceiveCylinderScreenCo
 import org.example.iosfirebasehope.navigation.events.ReceiveCylinderScreenEvent
 import kotlin.collections.plus
 
+
 @Composable
 fun ReceiveCylinderScreenUI(
     VendorName: String,
@@ -81,6 +83,7 @@ fun ReceiveCylinderScreenUI(
 ) {
     // State variables
     val details = remember { mutableStateOf<Map<String, String>?>(null) }
+
 
     val creditValue = remember { mutableStateOf<String?>("0") }
     val phoneNumberValue = remember { mutableStateOf<String?>(null) }
@@ -93,11 +96,14 @@ fun ReceiveCylinderScreenUI(
     var cylinderDetailsList by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
     val coroutineScope = rememberCoroutineScope()
 
+
     // State for animation
     var showMainContent by remember { mutableStateOf(true) }
 
+
     // State for ReceiveDialog
     var showReceiveDialog by remember { mutableStateOf(false) }
+
 
     // Fetch Vendor details
     LaunchedEffect(VendorName) {
@@ -107,8 +113,10 @@ fun ReceiveCylinderScreenUI(
             .document(VendorName)
             .get()
 
+
         details.value = document.get("Details") as? Map<String, String>
         phoneNumberValue.value = details.value?.get("Phone Number")?.toString()
+
 
         // Fetch issued cylinders
         val issuedCylindersDoc = db.collection("Vendors")
@@ -117,6 +125,7 @@ fun ReceiveCylinderScreenUI(
             .document(VendorName)
             .get()
         issuedCylinders = issuedCylindersDoc.get("Details") as? List<String> ?: emptyList()
+
 
         // Fetch issued LPG quantities
         val issuedLPGDoc = db.collection("Vendors")
@@ -127,6 +136,7 @@ fun ReceiveCylinderScreenUI(
         issuedLPGQuantities = issuedLPGDoc.get("Quantities") as? Map<String, Int> ?: emptyMap()
     }
 
+
     // Fetch cylinder details for selected serial numbers
     LaunchedEffect(selectedCylinders) {
         if (selectedCylinders.isNotEmpty()) {
@@ -136,6 +146,7 @@ fun ReceiveCylinderScreenUI(
         }
     }
 
+
     // Function to handle deletion of non-LPG cylinders
     val onDeleteNonLPG = { cylinderDetails: Map<String, String> ->
         // Remove the cylinder from the selectedCylinders list
@@ -143,16 +154,19 @@ fun ReceiveCylinderScreenUI(
         cylinderDetailsList = cylinderDetailsList.filter { it["Serial Number"] != cylinderDetails["Serial Number"] }
     }
 
+
     // Function to handle deletion of LPG entries
     val onDeleteLPG = { volumeType: String ->
         // Remove the LPG entry from the selectedLPGQuantities map
         selectedLPGQuantities = selectedLPGQuantities - volumeType
     }
 
+
     // Function to handle the "Return LPG" button click
     val onReturnLPGClick = {
         showReceiveLPGDialog = true
     }
+
 
     // Combine LPG and non-LPG items into a single list
     val CombinedItemReceives = remember(cylinderDetailsList, selectedLPGQuantities) {
@@ -164,6 +178,7 @@ fun ReceiveCylinderScreenUI(
         }
         nonLPGItems + lpgItems
     }
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Top bar
@@ -190,6 +205,7 @@ fun ReceiveCylinderScreenUI(
                     )
                 }
 
+
                 Text(
                     text = "Receive Cylinders",
                     fontWeight = FontWeight.Bold,
@@ -199,6 +215,7 @@ fun ReceiveCylinderScreenUI(
                 )
             }
         }
+
 
         // Main content
         Scaffold(
@@ -239,6 +256,7 @@ fun ReceiveCylinderScreenUI(
                             }
                             Divider()
 
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.Start,
@@ -249,6 +267,7 @@ fun ReceiveCylinderScreenUI(
                                     Text(text = "Credit:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
 
+
                                 Column(modifier = Modifier.weight(1f)) {
                                     phoneNumberValue.value?.let { Text(text = it, fontSize = 14.sp) }
                                     creditValue.value?.let { Text(text = it, fontSize = 14.sp) }
@@ -256,6 +275,7 @@ fun ReceiveCylinderScreenUI(
                             }
                         }
                     }
+
 
                     // Row for "Return Cylinders" and "Return LPG" buttons
                     Row(
@@ -279,6 +299,7 @@ fun ReceiveCylinderScreenUI(
                             Text(text = "Receive Cylinders", fontSize = 12.sp, color = Color.White)
                         }
 
+
                         // "Return LPG" button
                         Button(
                             onClick = {
@@ -295,6 +316,7 @@ fun ReceiveCylinderScreenUI(
                         }
                     }
 
+
                     // "Cylinders for Return" text and divider
                     Row(
                         modifier = Modifier
@@ -309,12 +331,14 @@ fun ReceiveCylinderScreenUI(
                             modifier = Modifier.padding(end = 8.dp)
                         )
 
+
                         Divider(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(1.dp),
                             color = Color.Gray
                         )
+
 
                         // Add this right after the "Receive Cylinders" button in the Row
                         Text(
@@ -326,6 +350,7 @@ fun ReceiveCylinderScreenUI(
                             color = Color.Gray
                         )
                     }
+
 
                     // Combined LazyColumn for LPG and non-LPG items
                     Box(
@@ -358,6 +383,7 @@ fun ReceiveCylinderScreenUI(
                         }
                     }
 
+
                     // Animate the "Return" button at the bottom
                     AnimatedVisibility(
                         visible = showMainContent,
@@ -383,6 +409,7 @@ fun ReceiveCylinderScreenUI(
             }
         }
 
+
         // Return Cylinder Dialog (outside AnimatedVisibility)
         if (showReceiveCylinderDialog) {
             ReceiveCylinderDialog(
@@ -400,6 +427,7 @@ fun ReceiveCylinderScreenUI(
                 alreadySelectedCylinders = selectedCylinders
             )
         }
+
 
         // Return LPG Dialog (outside AnimatedVisibility)
         if (showReceiveLPGDialog) {
@@ -443,6 +471,7 @@ fun ReceiveCylinderScreenUI(
             }
         }
 
+
         // Return Dialog (outside AnimatedVisibility)
         if (showReceiveDialog) {
             ReceiveDialog(
@@ -462,11 +491,14 @@ fun ReceiveCylinderScreenUI(
     }
 }
 
+
 // Sealed class to represent combined items
 sealed class CombinedItemReceive {
     data class NonLPG(val cylinderDetails: Map<String, String>) : CombinedItemReceive()
     data class LPG(val volumeType: String, val quantity: Int) : CombinedItemReceive()
 }
+
+
 
 
 @Composable
@@ -475,6 +507,7 @@ fun NonLPGReturnCardReceiveReceive(
     onDelete: () -> Unit // Callback for delete button
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
+
 
     // Delete confirmation dialog
     if (showDeleteConfirmation) {
@@ -504,6 +537,7 @@ fun NonLPGReturnCardReceiveReceive(
         )
     }
 
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -516,6 +550,7 @@ fun NonLPGReturnCardReceiveReceive(
             val gasName = cylinderDetails["Gas Type"] ?: ""
             val gasSymbol = getGasSymbol1(gasName)
             val gasColor = getGasColor1(gasName)
+
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -538,6 +573,7 @@ fun NonLPGReturnCardReceiveReceive(
                 }
                 Spacer(modifier = Modifier.width(12.dp)) // Reduced spacing
 
+
                 // Column for cylinder details
                 Column(
                     modifier = Modifier
@@ -546,6 +582,7 @@ fun NonLPGReturnCardReceiveReceive(
                 ) {
                     // Define the keys to display in the desired order
                     val orderedKeys = listOf("Serial Number", "Volume Type", "Issue Date", "Issued At Price")
+
 
                     // Iterate through the ordered keys and display their values
                     orderedKeys.forEach { key ->
@@ -568,6 +605,7 @@ fun NonLPGReturnCardReceiveReceive(
                     }
                 }
 
+
                 // Bin icon (right side)
                 IconButton(
                     onClick = { showDeleteConfirmation = true }, // Show delete confirmation dialog
@@ -584,6 +622,7 @@ fun NonLPGReturnCardReceiveReceive(
     }
 }
 
+
 @Composable
 fun LPGReturnCardReceive(
     volumeType: String,
@@ -591,6 +630,7 @@ fun LPGReturnCardReceive(
     onDelete: () -> Unit // Callback for delete button
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) } // State for delete confirmation dialog
+
 
     // Delete confirmation dialog
     if (showDeleteConfirmation) {
@@ -620,6 +660,7 @@ fun LPGReturnCardReceive(
         )
     }
 
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -632,6 +673,7 @@ fun LPGReturnCardReceive(
             val gasName = "LPG"
             val gasSymbol = getGasSymbol1(gasName)
             val gasColor = getGasColor1(gasName)
+
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -654,6 +696,7 @@ fun LPGReturnCardReceive(
                 }
                 Spacer(modifier = Modifier.width(12.dp)) // Reduced spacing
 
+
                 // Column for LPG details
                 Column(
                     modifier = Modifier
@@ -675,6 +718,7 @@ fun LPGReturnCardReceive(
                     )
                 }
 
+
                 // Bin icon (right side)
                 IconButton(
                     onClick = { showDeleteConfirmation = true }, // Show delete confirmation dialog
@@ -692,6 +736,8 @@ fun LPGReturnCardReceive(
 }
 
 
+
+
 @Composable
 fun ReceiveCylinderDialog(
     onDismiss: () -> Unit,
@@ -705,6 +751,7 @@ fun ReceiveCylinderDialog(
     var showValidationMessage by remember { mutableStateOf(false) }
     var allCylinders by remember { mutableStateOf<List<String>>(emptyList()) } // Store all available cylinders
 
+
     // Fetch cylinder options
     LaunchedEffect(Unit) {
         val issuedCylindersDoc = db.collection("Vendors")
@@ -716,6 +763,7 @@ fun ReceiveCylinderDialog(
         cylinderOptions = allCylinders
     }
 
+
     // Filter out already selected cylinders from the options
     val availableCylinderOptions = remember(cylinderOptions, selectedCylinders, alreadySelectedCylinders) {
         cylinderOptions.filter {
@@ -724,6 +772,7 @@ fun ReceiveCylinderDialog(
         }
     }
 
+
     // Hide validation message after 3 seconds
     LaunchedEffect(showValidationMessage) {
         if (showValidationMessage) {
@@ -731,6 +780,7 @@ fun ReceiveCylinderDialog(
             showValidationMessage = false
         }
     }
+
 
     LazyColumn(
         modifier = Modifier
@@ -743,6 +793,7 @@ fun ReceiveCylinderDialog(
         item {
             Spacer(modifier = Modifier.height(100.dp))
         }
+
 
         // Dialog box content
         item {
@@ -764,6 +815,7 @@ fun ReceiveCylinderDialog(
                     ) {
                         Text("Return Cylinders", fontWeight = FontWeight.Bold, fontSize = 20.sp)
 
+
                         // NEW: Receive All button
                         Row(
                             modifier = Modifier
@@ -777,6 +829,7 @@ fun ReceiveCylinderDialog(
                                     val availableToSelect = allCylinders.filter {
                                         it !in alreadySelectedCylinders
                                     }
+
 
                                     if (availableToSelect.isNotEmpty()) {
                                         // Directly call onDone with all available cylinders
@@ -814,7 +867,9 @@ fun ReceiveCylinderDialog(
                             }
                         }
 
+
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
+
 
                         // Cylinders Selection Section
                         Row(
@@ -838,13 +893,14 @@ fun ReceiveCylinderDialog(
                             }
                         }
 
+
                         // Dynamically generated cylinder selection fields
                         selectedCylinders.forEachIndexed { index, _ ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                SearchableDropdown3(
+                                SearchableDropdown31(
                                     modifier = Modifier.weight(1f),
                                     options = availableCylinderOptions,
                                     selectedItem = selectedCylinders[index],
@@ -856,6 +912,7 @@ fun ReceiveCylinderDialog(
                                     placeholder = "Select Cylinder",
                                     keyboardType = KeyboardType.Number
                                 )
+
 
                                 // Delete icon for each cylinder selection
                                 if (selectedCylinders.size > 1) {
@@ -876,6 +933,7 @@ fun ReceiveCylinderDialog(
                                 }
                             }
                         }
+
 
                         // Buttons
                         Row(
@@ -898,12 +956,15 @@ fun ReceiveCylinderDialog(
                                 )
                             }
 
+
                             // Cancel Button
                             TextButton(onClick = onDismiss) {
                                 Text("Cancel", color = Color(0xFF2f80eb))
                             }
 
+
                             Spacer(modifier = Modifier.width(8.dp))
+
 
                             // Done Button
                             Button(
@@ -928,12 +989,14 @@ fun ReceiveCylinderDialog(
             }
         }
 
+
         // Bottom transparent spacer
         item {
             Spacer(modifier = Modifier.height(500.dp))
         }
     }
 }
+
 
 @Composable
 fun ReceiveLPGDialog(
@@ -948,6 +1011,7 @@ fun ReceiveLPGDialog(
     var showValidationMessage by remember { mutableStateOf(false) }
     var quantityError by remember { mutableStateOf<String?>(null) }
 
+
     // Auto-dismiss the quantity error message after 4 seconds
     LaunchedEffect(quantityError) {
         if (quantityError != null) {
@@ -956,6 +1020,7 @@ fun ReceiveLPGDialog(
         }
     }
 
+
     // Auto-dismiss the validation message after 4 seconds
     LaunchedEffect(showValidationMessage) {
         if (showValidationMessage) {
@@ -963,6 +1028,7 @@ fun ReceiveLPGDialog(
             showValidationMessage = false
         }
     }
+
 
     LazyColumn(
         modifier = Modifier
@@ -975,6 +1041,7 @@ fun ReceiveLPGDialog(
         item {
             Spacer(modifier = Modifier.height(100.dp))
         }
+
 
         // Dialog box content
         item {
@@ -996,6 +1063,7 @@ fun ReceiveLPGDialog(
                     ) {
                         Text("Return LPG", fontWeight = FontWeight.Bold, fontSize = 20.sp)
 
+
                         // Display all quantities in the format "key: value cylinders issued"
                         quantities.forEach { (key, value) ->
                             Text(
@@ -1005,7 +1073,9 @@ fun ReceiveLPGDialog(
                             )
                         }
 
+
                         Spacer(modifier = Modifier.height(16.dp))
+
 
                         // Volume Type Dropdown
                         Text("Volume Type", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
@@ -1017,6 +1087,7 @@ fun ReceiveLPGDialog(
                             keyboardType = KeyboardType.Number
                         )
 
+
                         // Quantity Input
                         Text("Quantity", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
                         OutlinedTextField(
@@ -1026,6 +1097,7 @@ fun ReceiveLPGDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth()
                         )
+
 
                         // Display quantity error message in two lines
                         if (quantityError != null) {
@@ -1045,6 +1117,7 @@ fun ReceiveLPGDialog(
                             }
                         }
 
+
                         // Buttons
                         Row(
                             modifier = Modifier
@@ -1063,12 +1136,15 @@ fun ReceiveLPGDialog(
                                 )
                             }
 
+
                             // Cancel Button
                             TextButton(onClick = onDismiss) {
                                 Text("Cancel", color = Color(0xFF2f80eb))
                             }
 
+
                             Spacer(modifier = Modifier.width(8.dp))
+
 
                             // Done Button
                             Button(
@@ -1080,6 +1156,7 @@ fun ReceiveLPGDialog(
                                         val enteredQuantity = quantity.toIntOrNull() ?: 0
                                         val availableQuantity = quantities[volumeType!!] ?: 0
                                         val alreadySelectedQuantity = alreadySelectedLPGQuantities[volumeType!!] ?: 0
+
 
                                         if (enteredQuantity + alreadySelectedQuantity > availableQuantity) {
                                             // Set the error message in two lines
@@ -1100,12 +1177,15 @@ fun ReceiveLPGDialog(
             }
         }
 
+
         // Bottom transparent spacer
         item {
             Spacer(modifier = Modifier.height(500.dp))
         }
     }
 }
+
+
 
 
 @Composable
@@ -1130,6 +1210,12 @@ fun ReceiveDialog(
 
 
 
+
+
+
+
+
+
     AlertDialog(
         onDismissRequest = {if(isLoading) {} else onDismiss},
         title = {Row(
@@ -1148,6 +1234,7 @@ fun ReceiveDialog(
         text = {
             Column {
 
+
                 Text(
                     text = "Credit: ${credit ?: "0"}",
                     fontSize = 14.sp,
@@ -1155,11 +1242,17 @@ fun ReceiveDialog(
                 )
 
 
+
+
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
+
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+
                 // Cash in field
+
+
 
 
                 // Cash out field
@@ -1187,6 +1280,7 @@ fun ReceiveDialog(
                         unfocusedBorderColor = Color(0xFFD32F2F).copy(alpha = 0.5f)
                     )
                 )
+
 
                 OutlinedTextField(
                     value = creditInput,
@@ -1253,6 +1347,7 @@ suspend fun CustomCheckboxReceive(
         println("Non-LPG Cylinders: $nonLpgCylinders")
         println("LPG Cylinders: $lpgCylinders")
 
+
         // Get current date and time information once
         val currentDateTime = Clock.System.now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -1261,10 +1356,12 @@ suspend fun CustomCheckboxReceive(
             .replace(":", "-")
             .substringBefore(".")
 
+
         val currentDate = Clock.System.now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
             .date
             .toString()
+
 
         // Extract serialNumbers and prepare LPG data for batch operations
         val serialNumbers = nonLpgCylinders.mapNotNull { it["Serial Number"] }
@@ -1274,6 +1371,7 @@ suspend fun CustomCheckboxReceive(
             cylinders.sumOf { it["Quantity"]?.toIntOrNull() ?: 0 }
         }
 
+
         // Prepare cylinders returned data
         val cylindersReturned = nonLpgCylinders.map { cylinder ->
             mapOf(
@@ -1281,6 +1379,7 @@ suspend fun CustomCheckboxReceive(
                 "Return Date" to currentDate
             )
         }
+
 
         // Execute parallel operations with coroutineScope
         coroutineScope {
@@ -1291,13 +1390,17 @@ suspend fun CustomCheckboxReceive(
                     .collection("DateAndTime")
                     .document(currentDateTime)
 
+
                 val batch = db.batch()
+
 
                 // Main transaction document
                 batch.set(transactionsRef, mapOf("Date" to currentDate))
 
+
                 // Transaction details
                 val transactionDetailsRef = transactionsRef.collection("Transaction Details")
+
 
                 batch.set(transactionDetailsRef.document("Cash Out"), mapOf("Amount" to cashOut))
                 batch.set(transactionDetailsRef.document("Credit"), mapOf("Amount" to creditInput))
@@ -1312,8 +1415,10 @@ suspend fun CustomCheckboxReceive(
                 batch.set(transactionDetailsRef.document("LPG Returned"),
                     mapOf("LPGReturned" to lpgVolumeUpdates))
 
+
                 batch.commit()
             }
+
 
             // TASK 2: Update CylinderDetails array for all non-LPG cylinders
             val updateCylinderDetailsTask = async {
@@ -1321,11 +1426,14 @@ suspend fun CustomCheckboxReceive(
                     val cylindersRef = db.collection("Cylinders").document("Cylinders")
                     val snapshot = cylindersRef.get()
 
+
                     if (snapshot.exists) {
                         val cylinderDetails = snapshot.get("CylinderDetails") as? List<Map<String, String>> ?: emptyList()
 
+
                         // Create a set for faster lookups
                         val serialNumberSet = serialNumbers.toSet()
+
 
                         // Update the fields for matching cylinders
                         val updatedCylinderDetails = cylinderDetails.map { details ->
@@ -1342,11 +1450,13 @@ suspend fun CustomCheckboxReceive(
                             }
                         }
 
+
                         // Update in a single operation
                         cylindersRef.update("CylinderDetails" to updatedCylinderDetails)
                     }
                 }
             }
+
 
             // TASK 3: Update Issued Cylinders array for vendor
             val updateIssuedCylindersTask = async {
@@ -1356,19 +1466,24 @@ suspend fun CustomCheckboxReceive(
                         .collection("Names")
                         .document(VendorName)
 
+
                     val issuedCylindersSnapshot = issuedCylindersRef.get()
+
 
                     if (issuedCylindersSnapshot.exists) {
                         val detailsArray = issuedCylindersSnapshot.get("Details") as? List<String> ?: emptyList()
 
+
                         // Remove all serial numbers in one operation
                         val updatedDetailsArray = detailsArray.filter { it !in serialNumbers }
+
 
                         // Update in a single operation
                         issuedCylindersRef.update("Details" to updatedDetailsArray)
                     }
                 }
             }
+
 
             // TASK 4: Update LPG quantities
             val updateLpgTask = async {
@@ -1378,18 +1493,22 @@ suspend fun CustomCheckboxReceive(
                         val lpgRef = db.collection("Cylinders").document("LPG")
                         val lpgSnapshot = lpgRef.get()
 
+
                         if (lpgSnapshot.exists) {
                             val lpgFullMap = lpgSnapshot.get("LPGFull") as? Map<String, Int> ?: emptyMap()
                             val updatedLpgFullMap = lpgFullMap.toMutableMap()
+
 
                             // Update all volume types at once
                             lpgVolumeUpdates.forEach { (volumeTypeKey, quantity) ->
                                 updatedLpgFullMap[volumeTypeKey] = (updatedLpgFullMap[volumeTypeKey] ?: 0) + quantity
                             }
 
+
                             lpgRef.update("LPGFull" to updatedLpgFullMap)
                         }
                     }
+
 
                     // Task 4.2: Update vendor's LPG Quantities
                     val vendorLpgTask = async {
@@ -1398,11 +1517,14 @@ suspend fun CustomCheckboxReceive(
                             .collection("Names")
                             .document(VendorName)
 
+
                         val lpgIssuedSnapshot = lpgIssuedRef.get()
+
 
                         if (lpgIssuedSnapshot.exists) {
                             val quantitiesMap = lpgIssuedSnapshot.get("Quantities") as? Map<String, Int> ?: emptyMap()
                             val updatedQuantitiesMap = quantitiesMap.toMutableMap()
+
 
                             // Update all volume types at once
                             lpgVolumeUpdates.forEach { (volumeTypeKey, quantity) ->
@@ -1410,14 +1532,17 @@ suspend fun CustomCheckboxReceive(
                                 updatedQuantitiesMap[volumeTypeKey] = maxOf(0, currentQty - quantity)
                             }
 
+
                             lpgIssuedRef.update("Quantities" to updatedQuantitiesMap)
                         }
                     }
+
 
                     // Wait for both LPG tasks to complete
                     awaitAll(lpgFullTask, vendorLpgTask)
                 }
             }
+
 
             // TASK 5: Update vendor credit
             val updateVendorCreditTask = async {
@@ -1426,23 +1551,29 @@ suspend fun CustomCheckboxReceive(
                     .collection("Names")
                     .document(VendorName)
 
+
                 val vendorDetailsSnapshot = vendorDetailsRef.get()
+
 
                 if (vendorDetailsSnapshot.exists) {
                     val detailsMap = vendorDetailsSnapshot.get("Details") as? Map<String, String> ?: emptyMap()
 
+
                     // Update credit value
                     val currentCredit = detailsMap["Credit"]?.toDoubleOrNull() ?: 0.0
                     val newCredit = currentCredit + (creditInput.toDoubleOrNull() ?: 0.0)
+
 
                     // Update in a single operation
                     val updatedDetailsMap = detailsMap.toMutableMap().apply {
                         this["Credit"] = newCredit.toString()
                     }
 
+
                     vendorDetailsRef.update("Details" to updatedDetailsMap)
                 }
             }
+
 
             // Wait for all tasks to complete
             awaitAll(
@@ -1454,6 +1585,7 @@ suspend fun CustomCheckboxReceive(
             )
         }
 
+
         // Call onSuccess after all operations complete
         onSuccess()
     } catch (e: Exception) {
@@ -1461,6 +1593,7 @@ suspend fun CustomCheckboxReceive(
         onFailure(e)
     }
 }
+
 
 //suspend fun CustomCheckboxReceive(
 //    db: FirebaseFirestore,
@@ -1704,3 +1837,4 @@ suspend fun CustomCheckboxReceive(
 //        onFailure(e)
 //    }
 //}
+
