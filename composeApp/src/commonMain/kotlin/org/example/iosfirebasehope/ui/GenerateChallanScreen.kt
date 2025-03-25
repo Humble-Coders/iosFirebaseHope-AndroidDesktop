@@ -70,7 +70,7 @@ fun GenerateChallanScreenUI(
                 contentColor = Color.White,
                 backgroundColor = Color(0xFF2f80eb),
                 navigationIcon = {
-                    IconButton(onClick = { component.onEvent(GenerateChallanScreenEvent.OnBackClick) }) {
+                    IconButton(onClick = {  }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,6 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.example.iosfirebasehope.navigation.components.TransactionVendorScreenComponent
 import org.example.iosfirebasehope.navigation.events.TransactionVendorScreenEvent
@@ -32,6 +36,19 @@ fun TransactionVendorScreenUI(
 
     // State to hold transactions grouped by date and time
     var transactions by remember { mutableStateOf<Map<String, Map<String, Any>>?>(null) }
+
+    // Filter state
+    var filterType by remember { mutableStateOf("None") }
+    var dateFilterExpanded by remember { mutableStateOf(false) }
+    var filterExpanded by remember { mutableStateOf(false) }
+    var selectedDate by remember { mutableStateOf("") }
+
+    // Get unique dates for date filter
+    val allDates = transactions?.entries?.map { entry ->
+        val (date, _) = entry.key.split("_")
+        val dateList = date.split("-")
+        "${dateList[2]}-${dateList[1]}-${dateList[0]}"
+    }?.distinct()?.sorted() ?: emptyList()
 
     // Fetch transactions on launch
     LaunchedEffect(vendorName) {
@@ -69,16 +86,132 @@ fun TransactionVendorScreenUI(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
+            // Filter dropdowns
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Filter by:",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+
+                // Primary filter dropdown
+                Box {
+                    Button(
+                        onClick = { filterExpanded = true },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb)),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text(filterType, color = Color.White)
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Dropdown",
+                            tint = Color.White
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = filterExpanded,
+                        onDismissRequest = { filterExpanded = false }
+                    ) {
+                        DropdownMenuItem(onClick = {
+                            filterType = "None"
+                            selectedDate = ""
+                            filterExpanded = false
+                        }) {
+                            Text("None")
+                        }
+                        DropdownMenuItem(onClick = {
+                            filterType = "Date"
+                            filterExpanded = false
+                            dateFilterExpanded = true
+                        }) {
+                            Text("Date")
+                        }
+                        DropdownMenuItem(onClick = {
+                            filterType = "Credit"
+                            selectedDate = ""
+                            filterExpanded = false
+                        }) {
+                            Text("Credit")
+                        }
+                    }
+                }
+
+                // Date filter dropdown (shows only when Date filter is selected)
+                if (filterType == "Date") {
+                    Box {
+                        Button(
+                            onClick = { dateFilterExpanded = true },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb))
+                        ) {
+                            Text(if (selectedDate.isEmpty()) "Select Date" else selectedDate, color = Color.White)
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Dropdown",
+                                tint = Color.White
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = dateFilterExpanded,
+                            onDismissRequest = { dateFilterExpanded = false }
+                        ) {
+                            allDates.forEach { date ->
+                                DropdownMenuItem(onClick = {
+                                    selectedDate = date
+                                    dateFilterExpanded = false
+                                }) {
+                                    Text(date)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (transactions != null) {
-                // Display transactions grouped by date and time
+                // Apply filters
+                val filteredTransactions = when (filterType) {
+                    "Date" -> {
+                        if (selectedDate.isEmpty()) {
+                            transactions
+                        } else {
+                            // Convert selected date back to original format for filtering
+                            val dateParts = selectedDate.split("-")
+                            val originalFormat = "${dateParts[2]}-${dateParts[1]}-${dateParts[0]}"
+                            transactions?.filter { entry ->
+                                entry.key.startsWith(originalFormat)
+                            }
+                        }
+                    }
+                    "Credit" -> {
+                        transactions?.filter { (_, details) ->
+                            val creditAmount = details["Credit"] as String
+                            creditAmount != "0"
+                        }
+                    }
+                    else -> transactions
+                }
+
+                // Display filtered transactions
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    items(transactions!!.entries.toList()) { (dateTime, transactionDetails) ->
+                    items(filteredTransactions!!.entries.sortedByDescending { it.key }) { (dateTime, transactionDetails) ->
                         // Split date and time
                         val (date, time) = dateTime.split("_")
+                        // Format date
+                        val dateList = date.split("-")
+                        val newDate = "${dateList[2]}-${dateList[1]}-${dateList[0]}"
 
                         // Calculate counts
                         val cylindersIssuedCount = countSerialNumbers(transactionDetails["CylindersIssued"] as List<Map<String, String>>)
@@ -86,15 +219,24 @@ fun TransactionVendorScreenUI(
                         val lpgIssuedCount = sumQuantities(transactionDetails["LPGIssued"] as List<Map<String, String>>)
                         val inventoryIssuedCount = sumQuantities(transactionDetails["InventoryIssued"] as List<Map<String, String>>)
 
+                        // New fields with defaults if not present
+                        val totalPrice = transactionDetails["Total Price"] as? String ?: "0"
+                        val cashOut = transactionDetails["Cash Out"] as? String ?: "0"
+                        val lpgReturnedCount = sumQuantitiesInt(transactionDetails["LPGReturned"] as? Map<String, Int> ?: emptyMap())
+                        val deliveryAmount = transactionDetails["Delivery"] as? String ?: "0"
+
                         TransactionCard(
-                            date = date,
-                            time = time,
+                            date = newDate,
+                            price = totalPrice,
                             cashAmount = transactionDetails["Cash"] as String,
                             creditAmount = transactionDetails["Credit"] as String,
+                            deliveryAmount = deliveryAmount,
                             cylindersIssuedCount = cylindersIssuedCount,
                             cylindersReturnedCount = cylindersReturnedCount,
                             lpgIssuedCount = lpgIssuedCount,
+                            lpgReturnedCount = lpgReturnedCount,
                             inventoryIssuedCount = inventoryIssuedCount,
+                            cashOut = cashOut,
                             onClick = {
                                 // Handle transaction click
                                 component.onEvent(TransactionVendorScreenEvent.OnTransactionClick(vendorName, dateTime))
@@ -137,17 +279,29 @@ private fun sumQuantities(items: List<Map<String, String>>): Int {
     return sum
 }
 
+// Function to sum quantities from a map of items
+private fun sumQuantitiesInt(items: Map<String, Int>): Int {
+    var sum = 0
+    for (item in items) {
+        sum += item.value
+    }
+    return sum
+}
+
 @Composable
 private fun TransactionCard(
     date: String,
-    time: String,
+    price: String,
     cashAmount: String,
     creditAmount: String,
+    deliveryAmount: String,
     cylindersIssuedCount: Int,
     cylindersReturnedCount: Int,
     lpgIssuedCount: Int,
+    lpgReturnedCount: Int,
     inventoryIssuedCount: Int,
-    onClick: () -> Unit // Callback for card click
+    onClick: () -> Unit, // Callback for card click
+    cashOut: String
 ) {
     Card(
         modifier = Modifier
@@ -161,7 +315,7 @@ private fun TransactionCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Date and Time Row
+            // Date and Total Price Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -176,9 +330,9 @@ private fun TransactionCard(
                     color = Color.Black
                 )
 
-                // Time on the right
+                // Price on the right
                 Text(
-                    text = time,
+                    text = "Price: Rs. $price",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -188,184 +342,232 @@ private fun TransactionCard(
             // Divider
             Divider(color = Color.LightGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
 
-            // Cash and Credit Row
+            // Main content - 4 fields on left, 4 fields on right
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Cash
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                // Left column - 4 fields
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "Cash:",
-                        fontSize = 16.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(
-                        text = "Rs. $cashAmount",
-                        fontSize = 16.sp,
-                        color = Color(0xFF2E7D32)
-                    )
+                    // 1. Cash
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Cash:",
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.width(100.dp)
+                        )
+                        Text(
+                            text = "Rs. $cashAmount",
+                            fontSize = 14.sp,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+
+                    // 2. Cylinders Issued
+                    if (cashOut == "0") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Inventory:",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.width(100.dp)
+                            )
+                            Text(
+                                text = "$inventoryIssuedCount",
+                                fontSize = 14.sp,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+                    }
+
+                    // 3. LPG Issued
+                    if (cashOut == "0") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Cyls Issued:",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.width(100.dp)
+                            )
+                            Text(
+                                text = "$cylindersIssuedCount",
+                                fontSize = 14.sp,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+                    }
+
+                    // 4. Inventory
+                    if (cashOut == "0") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "LPG Issued:",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.width(100.dp)
+                            )
+                            Text(
+                                text = "$lpgIssuedCount",
+                                fontSize = 14.sp,
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+                    }
+
+                    // Cash Out (only shown if cashOut is not "0")
+                    if (cashOut != "0") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Cash Out:",
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.width(100.dp)
+                            )
+                            Text(
+                                text = "Rs. $cashOut",
+                                fontSize = 14.sp,
+                                color = Color(0xFFD32F2F)
+                            )
+                        }
+                    }
                 }
 
-                // Credit
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                // Right column - 4 fields
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "Credit:",
-                        fontSize = 16.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(
-                        text = "Rs. $creditAmount",
-                        fontSize = 16.sp,
-                        color = Color(0xFFD32F2F)
-                    )
-                }
-            }
+                    // 1. Credit
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Credit:",
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.width(120.dp)
+                        )
+                        Text(
+                            text = "Rs. $creditAmount",
+                            fontSize = 14.sp,
+                            color = Color(0xFFD32F2F)
+                        )
+                    }
 
-            // Cylinders Issued and Cylinders Returned Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Cylinders Issued
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Issued:",
-                        fontSize = 16.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(
-                        text = "$cylindersIssuedCount",
-                        fontSize = 16.sp,
-                        color = Color(0xFF2E7D32)
-                    )
-                }
+                    // 2. Delivery
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Delivery:",
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.width(120.dp)
+                        )
+                        Text(
+                            text = if (deliveryAmount != "0") "Rs. $deliveryAmount" else "0",
+                            fontSize = 14.sp,
+                            color = if (deliveryAmount != "0") Color(0xFF1976D2) else Color.Gray
+                        )
+                    }
 
-                // Cylinders Returned
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Returned:",
-                        fontSize = 16.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(
-                        text = "$cylindersReturnedCount",
-                        fontSize = 16.sp,
-                        color = Color(0xFFD32F2F)
-                    )
-                }
-            }
+                    // 3. Cylinders Returned
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Cyls Returned:",
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.width(120.dp)
+                        )
+                        Text(
+                            text = "$cylindersReturnedCount",
+                            fontSize = 14.sp,
+                            color = if (cylindersReturnedCount > 0) Color(0xFFD32F2F) else Color.Gray
+                        )
+                    }
 
-            // LPG Issued and Inventory Issued Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // LPG Issued
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "LPG Issued:",
-                        fontSize = 16.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(
-                        text = "$lpgIssuedCount",
-                        fontSize = 16.sp,
-                        color = Color(0xFF2E7D32)
-                    )
-                }
-
-                // Inventory Issued
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Inventory Issued:",
-                        fontSize = 16.sp,
-                        color = Color.Black,
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                    Text(
-                        text = "$inventoryIssuedCount",
-                        fontSize = 16.sp,
-                        color = Color(0xFFD32F2F)
-                    )
+                    // 4. LPG Returned
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "LPG Returned:",
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.width(120.dp)
+                        )
+                        Text(
+                            text = "$lpgReturnedCount",
+                            fontSize = 14.sp,
+                            color = if (lpgReturnedCount > 0) Color(0xFFD32F2F) else Color.Gray
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// Suspend function to fetch all transactions (unchanged)
+// Updated suspend function to fetch all transactions using coroutines for parallel fetching
 private suspend fun fetchTransactions(
     db: FirebaseFirestore,
     vendorName: String
-): Map<String, Map<String, Any>> {
+): Map<String, Map<String, Any>> = coroutineScope {
     val transactionMap = mutableMapOf<String, Map<String, Any>>()
 
-    // Fetch the `DateAndTime` collection for the given vendor
+    // First fetch all DateAndTime documents
     val transactionsSnapshot = db.collection("TransactionVendor")
         .document(vendorName)
         .collection("DateAndTime")
         .get()
 
-    val transactionDocuments = transactionsSnapshot.documents
-    if (transactionDocuments.isEmpty()) {
-        throw Exception("No transactions found for this vendor.")
+    // Then parallelize the fetching of details for each date
+    val deferredResults = transactionsSnapshot.documents.map { dateTimeDoc ->
+        async {
+            val dateTime = dateTimeDoc.id
+            val transactionDetailsCollection = dateTimeDoc.reference.collection("Transaction Details")
+
+            // Fetch all documents in parallel
+            val results = awaitAll(
+                async { transactionDetailsCollection.document("Cash").get() },
+                async { transactionDetailsCollection.document("Credit").get() },
+                async { transactionDetailsCollection.document("Cylinders Issued").get() },
+                async { transactionDetailsCollection.document("Cylinders Returned").get() },
+                async { transactionDetailsCollection.document("LPG Issued").get() },
+                async { transactionDetailsCollection.document("Inventory Issued").get() },
+                async { transactionDetailsCollection.document("Total Price").get() },
+                async { transactionDetailsCollection.document("Cash Out").get() },
+                async { transactionDetailsCollection.document("LPG Returned").get() },
+                async { transactionDetailsCollection.document("Delivery").get() }
+            )
+
+            // Map results to their respective values
+            dateTime to mapOf(
+                "Cash" to (results[0].get("Amount") as? String ?: "0"),
+                "Credit" to (results[1].get("Amount") as? String ?: "0"),
+                "CylindersIssued" to (results[2].get("CylindersIssued") as? List<Map<String, String>> ?: emptyList()),
+                "CylindersReturned" to (results[3].get("CylindersReturned") as? List<Map<String, String>> ?: emptyList()),
+                "LPGIssued" to (results[4].get("LPGIssued") as? List<Map<String, String>> ?: emptyList()),
+                "InventoryIssued" to (results[5].get("InventoryIssued") as? List<Map<String, String>> ?: emptyList()),
+                "Total Price" to (results[6]?.get("Amount") as? String ?: "0"),
+                "Cash Out" to (results[7]?.get("Amount") as? String ?: "0"),
+                "LPGReturned" to (results[8]?.get("LPGReturned") as? Map<String, Int> ?: emptyMap()),
+                "Delivery" to (results[9]?.get("Amount") as? String ?: "0")
+            )
+        }
     }
 
-    // Iterate through each `DateAndTime` document
-    for (dateTimeDoc in transactionsSnapshot.documents) {
-        val dateTime = dateTimeDoc.id // The document ID as the date and time
-        val transactionDetailsCollection = dateTimeDoc.reference.collection("Transaction Details")
-
-        // Fetch transaction detail documents
-        val cashDoc = transactionDetailsCollection.document("Cash").get()
-        val creditDoc = transactionDetailsCollection.document("Credit").get()
-        val cylindersIssuedDoc = transactionDetailsCollection.document("Cylinders Issued").get()
-        val cylindersReturnedDoc = transactionDetailsCollection.document("Cylinders Returned").get()
-        val lpgIssuedDoc = transactionDetailsCollection.document("LPG Issued").get()
-        val inventoryIssuedDoc = transactionDetailsCollection.document("Inventory Issued").get()
-
-        // Extract transaction details
-        val cashAmount = cashDoc.get("Amount") as? String ?: "0"
-        val creditAmount = creditDoc.get("Amount") as? String ?: "0"
-        val cylindersIssued = cylindersIssuedDoc.get("CylindersIssued") as? List<Map<String, String>> ?: emptyList()
-        val cylindersReturned = cylindersReturnedDoc.get("CylindersReturned") as? List<Map<String, String>> ?: emptyList()
-        val lpgIssued = lpgIssuedDoc.get("LPGIssued") as? List<Map<String, String>> ?: emptyList()
-        val inventoryIssued = inventoryIssuedDoc.get("InventoryIssued") as? List<Map<String, String>> ?: emptyList()
-
-        // Store the transaction details for the current date and time
-        transactionMap[dateTime] = mapOf(
-            "Cash" to cashAmount,
-            "Credit" to creditAmount,
-            "CylindersIssued" to cylindersIssued,
-            "CylindersReturned" to cylindersReturned,
-            "LPGIssued" to lpgIssued,
-            "InventoryIssued" to inventoryIssued
-        )
+    // Collect all results
+    deferredResults.awaitAll().forEach { (dateTime, data) ->
+        transactionMap[dateTime] = data
     }
 
-    return transactionMap
+    transactionMap
 }

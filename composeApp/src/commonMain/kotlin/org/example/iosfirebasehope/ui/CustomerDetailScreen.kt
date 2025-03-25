@@ -611,15 +611,6 @@ fun CustomerDetailsScreenUI(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp
                                     )
-                                    val now = Clock.System.now()
-                                    val localDateTime = now.toLocalDateTime(TimeZone.currentSystemDefault())
-                                    Text(
-                                        text = "Date: ${
-                                            "${localDateTime.dayOfMonth.toString().padStart(2, '0')}-${localDateTime.monthNumber.toString().padStart(2, '0')}-${localDateTime.year}"
-                                        }",
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
                                 }
                             }
                         }

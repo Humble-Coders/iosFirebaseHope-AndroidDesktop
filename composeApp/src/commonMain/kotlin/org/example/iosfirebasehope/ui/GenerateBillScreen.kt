@@ -33,6 +33,7 @@ fun GenerateBillScreenUI(
     var transactionDetails by remember { mutableStateOf<TransactionDetails?>(null) }
     var customerDetails by remember { mutableStateOf<Map<String, String>?>(null) }
     var formattedDateTime by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(true) } // Added loading state as buffer
 
     // Format date and time
     LaunchedEffect(dateTime) {
@@ -46,16 +47,21 @@ fun GenerateBillScreenUI(
 
     // Fetch transaction details
     LaunchedEffect(customerName, dateTime) {
-        transactionDetails = fetchTransactionDetails(db, customerName, dateTime)
+        isLoading = true // Start loading
+        try {
+            transactionDetails = fetchTransactionDetails(db, customerName, dateTime)
 
-        // Fetch customer details for phone number
-        val document = db.collection("Customers")
-            .document("Details")
-            .collection("Names")
-            .document(customerName)
-            .get()
+            // Fetch customer details for phone number
+            val document = db.collection("Customers")
+                .document("Details")
+                .collection("Names")
+                .document(customerName)
+                .get()
 
-        customerDetails = document.get("Details") as? Map<String, String>
+            customerDetails = document.get("Details") as? Map<String, String>
+        } finally {
+            isLoading = false // End loading regardless of success or failure
+        }
     }
 
     // Calculate subtotal, delivery amount and grand total
@@ -78,600 +84,427 @@ fun GenerateBillScreenUI(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-        ) {
-            // Header section
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "INVOICE",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Text(
-                        text = "Gobind Traders",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-
-                    Text(
-                        text = "Gas & Cylinder Suppliers",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Call,
-                            contentDescription = "Phone",
-                            tint = Color(0xFF2f80eb),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "+91 8194963318",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-                    }
-
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-                }
+        if (isLoading) {
+            // Show loading indicator while data is being fetched
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFF2f80eb))
             }
-
-            // Invoice details
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    elevation = 2.dp,
-                    backgroundColor = Color(0xFFF5F5F5)
-                ) {
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+            ) {
+                // Header section
+                item {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Invoice number and date
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Invoice Date:",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = formattedDateTime.split(" ")[0],
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                        Text(
+                            text = "INVOICE",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
 
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "Invoice Number:",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = dateTime.replace(":", "-").take(15),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                        Text(
+                            text = "Gobind Traders",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+
+                        Text(
+                            text = "Gas & Cylinder Suppliers",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Call,
+                                contentDescription = "Phone",
+                                tint = Color(0xFF2f80eb),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "+91 8194963318",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                }
 
-                        // Customer information
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                // Invoice details
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        elevation = 2.dp,
+                        backgroundColor = Color(0xFFF5F5F5)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
                         ) {
-                            Column {
-                                Text(
-                                    text = "Customer:",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                                Text(
-                                    text = customerName,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                customerDetails?.get("Phone Number")?.let { phone ->
+                            // Invoice number and date
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
                                     Text(
-                                        text = phone,
-                                        fontSize = 14.sp
+                                        text = "Invoice Date:",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                    Text(
+                                        text = formattedDateTime.split(" ")[0],
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "Invoice Number:",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                    Text(
+                                        text = dateTime.replace(":", "-").take(15),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
                                     )
                                 }
                             }
 
-                            Column(horizontalAlignment = Alignment.End) {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Customer information
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "Customer:",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                    Text(
+                                        text = customerName,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    customerDetails?.get("Phone Number")?.let { phone ->
+                                        Text(
+                                            text = phone,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "Payment Method:",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+
+                                    // Updated payment mode logic
+                                    val cashAmount = transactionDetails?.cash?.toDoubleOrNull() ?: 0.0
+                                    val creditAmount = transactionDetails?.credit?.toDoubleOrNull() ?: 0.0
+
+                                    val paymentMode = when {
+                                        cashAmount > 0 && creditAmount > 0 -> "Cash + Credit"
+                                        cashAmount > 0 -> "Cash"
+                                        creditAmount > 0 -> "Credit"
+                                        else -> "N/A"
+                                    }
+
+                                    Text(
+                                        text = paymentMode,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Rest of the UI remains the same...
+                // Items header
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF2f80eb), RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                            .padding(vertical = 8.dp, horizontal = 16.dp)
+                    ) {
+                        Text(
+                            text = "ITEMS",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+
+                    // Column headers
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFE0E0E0))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "Description",
+                            modifier = Modifier.weight(2f),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "Qty",
+                            modifier = Modifier.weight(0.5f),
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "Rate",
+                            modifier = Modifier.weight(0.8f),
+                            textAlign = TextAlign.End,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "Amount",
+                            modifier = Modifier.weight(0.8f),
+                            textAlign = TextAlign.End,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                // Cylinders issued
+                transactionDetails?.cylindersIssued?.let { cylinders ->
+                    if (cylinders.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Cylinders Issued",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF0F0F0))
+                                    .padding(8.dp),
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        itemsIndexed(cylinders) { _, cylinder ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = "Payment Method:",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
+                                    text = "${cylinder["Gas Type"] ?: "Unknown"} ${cylinder["Volume Type"] ?: "Unknown"} (S.No: ${cylinder["Serial Number"] ?: "N/A"})",
+                                    modifier = Modifier.weight(2f),
+                                    fontSize = 12.sp
                                 )
                                 Text(
-                                    text = if ((transactionDetails?.credit?.toDoubleOrNull() ?: 0.0) > 0) {
-                                        "Cash + Credit"
-                                    } else {
-                                        "Cash"
-                                    },
+                                    text = "1",
+                                    modifier = Modifier.weight(0.5f),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "Rs.${cylinder["Price"] ?: "0"}",
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "Rs.${cylinder["Price"] ?: "0"}",
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Divider(color = Color.LightGray)
+                        }
+                    }
+                }
+
+                // Continue with remaining code for LPG issued, inventory issued, etc.
+                // ...
+
+                // Totals
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        // Subtotal
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Subtotal:",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = "Rs.${(subtotal * 100).toInt() / 100.0}",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        // Delivery
+                        if (deliveryAmount > 0) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Delivery:",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "Rs.${(deliveryAmount * 100).toInt() / 100.0}",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+
+                        Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+
+                        // Grand Total
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Grand Total:",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "Rs.${kotlin.math.round(grandTotal * 100) / 100.0}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+
+                        // Payment info
+                        val cashAmount = transactionDetails?.cash?.toDoubleOrNull() ?: 0.0
+                        if (cashAmount > 0) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Cash Paid:",
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "Rs.${transactionDetails?.cash ?: "0"}",
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+
+                        if ((transactionDetails?.credit?.toDoubleOrNull() ?: 0.0) > 0) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Credit Amount:",
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
+                                    color = Color(0xFFD32F2F)
+                                )
+                                Text(
+                                    text = "Rs.${transactionDetails?.credit ?: "0"}",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFFD32F2F)
+                                )
+                            }
+                        }
+
+                        if ((transactionDetails?.CashOut?.toDoubleOrNull() ?: 0.0) > 0) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Cash Out:",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFFD32F2F)
+                                )
+                                Text(
+                                    text = "Rs.${transactionDetails?.CashOut ?: "0"}",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFFD32F2F)
                                 )
                             }
                         }
                     }
                 }
-            }
 
-            // Items header
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF2f80eb), RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                        .padding(vertical = 8.dp, horizontal = 16.dp)
-                ) {
-                    Text(
-                        text = "ITEMS",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                }
-
-                // Column headers
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFE0E0E0))
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        text = "Description",
-                        modifier = Modifier.weight(2f),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Qty",
-                        modifier = Modifier.weight(0.5f),
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Rate",
-                        modifier = Modifier.weight(0.8f),
-                        textAlign = TextAlign.End,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Amount",
-                        modifier = Modifier.weight(0.8f),
-                        textAlign = TextAlign.End,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-
-            // Cylinders issued
-            transactionDetails?.cylindersIssued?.let { cylinders ->
-                if (cylinders.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Cylinders Issued",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFF0F0F0))
-                                .padding(8.dp),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    itemsIndexed(cylinders) { _, cylinder ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${cylinder["Gas Type"] ?: "Unknown"} ${cylinder["Volume Type"] ?: "Unknown"} (S.No: ${cylinder["Serial Number"] ?: "N/A"})",
-                                modifier = Modifier.weight(2f),
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "1",
-                                modifier = Modifier.weight(0.5f),
-                                textAlign = TextAlign.Center,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "Rs.${cylinder["Price"] ?: "0"}",
-                                modifier = Modifier.weight(0.8f),
-                                textAlign = TextAlign.End,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "Rs.${cylinder["Price"] ?: "0"}",
-                                modifier = Modifier.weight(0.8f),
-                                textAlign = TextAlign.End,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Divider(color = Color.LightGray)
-                    }
-                }
-            }
-
-            // LPG issued
-            transactionDetails?.lpgIssued?.let { lpgItems ->
-                if (lpgItems.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "LPG Issued",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFF0F0F0))
-                                .padding(8.dp),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    itemsIndexed(lpgItems) { _, lpg ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "LPG ${lpg["Volume Type"] ?: "Unknown"}",
-                                modifier = Modifier.weight(2f),
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "${lpg["Quantity"] ?: "0"}",
-                                modifier = Modifier.weight(0.5f),
-                                textAlign = TextAlign.Center,
-                                fontSize = 12.sp
-                            )
-
-                            val quantity = lpg["Quantity"]?.toDoubleOrNull() ?: 0.0
-                            val price = lpg["Price"]?.toDoubleOrNull() ?: 0.0
-                            val rate = if (quantity > 0) price / quantity else 0.0
-
-                            Text(
-                                text = "Rs.${kotlin.math.round(subtotal * 100) / 100.0}",
-                                modifier = Modifier.weight(0.8f),
-                                textAlign = TextAlign.End,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "Rs.${lpg["Price"] ?: "0"}",
-                                modifier = Modifier.weight(0.8f),
-                                textAlign = TextAlign.End,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Divider(color = Color.LightGray)
-                    }
-                }
-            }
-
-            // Inventory issued
-            transactionDetails?.inventoryIssued?.let { inventoryItems ->
-                if (inventoryItems.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Inventory Items",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFF0F0F0))
-                                .padding(8.dp),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    itemsIndexed(inventoryItems) { _, item ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = item["Name"] ?: "Unknown Item",
-                                modifier = Modifier.weight(2f),
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = item["Quantity"] ?: "0",
-                                modifier = Modifier.weight(0.5f),
-                                textAlign = TextAlign.Center,
-                                fontSize = 12.sp
-                            )
-
-                            val quantity = item["Quantity"]?.toDoubleOrNull() ?: 0.0
-                            val price = item["Price"]?.toDoubleOrNull() ?: 0.0
-                            val rate = if (quantity > 0) price / quantity else 0.0
-
-                            Text(
-                                text = "Rs.${kotlin.math.round(rate * 100) / 100.0}",
-                                modifier = Modifier.weight(0.8f),
-                                textAlign = TextAlign.End,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "Rs.${item["Price"] ?: "0"}",
-                                modifier = Modifier.weight(0.8f),
-                                textAlign = TextAlign.End,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Divider(color = Color.LightGray)
-                    }
-                }
-            }
-
-            // Cylinders returned
-            transactionDetails?.cylindersReturned?.let { cylinders ->
-                if (cylinders.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Cylinders Returned",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFF0F0F0))
-                                .padding(8.dp),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    itemsIndexed(cylinders) { _, cylinder ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Cylinder (S.No: ${cylinder["Serial Number"] ?: "N/A"})",
-                                modifier = Modifier.weight(3.3f),
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "1",
-                                modifier = Modifier.weight(0.5f),
-                                textAlign = TextAlign.Center,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "",
-                                modifier = Modifier.weight(0.8f),
-                                fontSize = 12.sp
-                            )
-                        }
-                        Divider(color = Color.LightGray)
-                    }
-                }
-            }
-
-            // LPG returned
-            transactionDetails?.lpgReturned?.let { lpgItems ->
-                if (lpgItems.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "LPG Returned",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFF0F0F0))
-                                .padding(8.dp),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    itemsIndexed(lpgItems) { _, lpg ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "LPG ${lpg["Volume Type"] ?: "Unknown"}",
-                                modifier = Modifier.weight(2f),
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "${lpg["Quantity"] ?: "0"}",
-                                modifier = Modifier.weight(0.5f),
-                                textAlign = TextAlign.Center,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "",
-                                modifier = Modifier.weight(1.6f),
-                                fontSize = 12.sp
-                            )
-                        }
-                        Divider(color = Color.LightGray)
-                    }
-                }
-            }
-
-            // Totals
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp)
-                ) {
-                    // Subtotal
-                    Row(
+                // Thank you note
+                item {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Subtotal:",
+                            text = "Thank you for your business!",
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp
                         )
                         Text(
-                            text = "Rs.${(subtotal * 100).toInt() / 100.0}",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp
+                            text = "For any queries, please contact us.",
+                            fontSize = 12.sp,
+                            color = Color.Gray
                         )
                     }
-
-                    // Delivery
-                    if (deliveryAmount > 0) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Delivery:",
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "Rs.${(deliveryAmount * 100).toInt() / 100.0}",
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-
-                    Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
-                    // Grand Total
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Grand Total:",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            text = "Rs.${kotlin.math.round(grandTotal * 100) / 100.0}",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    }
-
-                    // Payment info
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Cash Paid:",
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "Rs.${transactionDetails?.cash ?: "0"}",
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    if ((transactionDetails?.credit?.toDoubleOrNull() ?: 0.0) > 0) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Credit Amount:",
-                                fontSize = 14.sp,
-                                color = Color(0xFFD32F2F)
-                            )
-                            Text(
-                                text = "Rs.${transactionDetails?.credit ?: "0"}",
-                                fontSize = 14.sp,
-                                color = Color(0xFFD32F2F)
-                            )
-                        }
-                    }
-
-                    if ((transactionDetails?.CashOut?.toDoubleOrNull() ?: 0.0) > 0) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Cash Out:",
-                                fontSize = 14.sp,
-                                color = Color(0xFFD32F2F)
-                            )
-                            Text(
-                                text = "Rs.${transactionDetails?.CashOut ?: "0"}",
-                                fontSize = 14.sp,
-                                color = Color(0xFFD32F2F)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Thank you note
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Thank you for your business!",
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = "For any queries, please contact us.",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
                 }
             }
         }

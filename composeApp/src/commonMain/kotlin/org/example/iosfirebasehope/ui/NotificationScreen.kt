@@ -8,12 +8,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.gitlive.firebase.firestore.FirebaseFirestore
@@ -52,10 +55,12 @@ fun NotificationScreenUI(
 ) {
     val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     var notifications by remember { mutableStateOf<List<CylinderNotification>>(emptyList()) }
+    var filteredNotifications by remember { mutableStateOf<List<CylinderNotification>>(emptyList()) }
     var showDialog by remember { mutableStateOf(false) }
     var selectedSerialNumber by remember { mutableStateOf("") }
     var daysToExtend by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
     // Function to load data efficiently with async
@@ -67,6 +72,8 @@ fun NotificationScreenUI(
                     fetchOverdueCylindersAsync(db, currentDate)
                 }
                 notifications = loadedNotifications
+                // Initialize filtered notifications with all notifications
+                filteredNotifications = loadedNotifications
             } catch (e: Exception) {
                 println("Error loading notifications: ${e.message}")
             } finally {
@@ -78,6 +85,20 @@ fun NotificationScreenUI(
     // Initial load
     LaunchedEffect(Unit) {
         loadNotifications()
+    }
+
+    // Filter notifications based on search query
+    LaunchedEffect(searchQuery, notifications) {
+        if (searchQuery.isEmpty()) {
+            filteredNotifications = notifications
+        } else {
+            filteredNotifications = notifications.filter { notification ->
+                notification.serialNumber.contains(searchQuery, ignoreCase = true) ||
+                        notification.currentlyIssuedTo.contains(searchQuery, ignoreCase = true) ||
+                        notification.gasType.contains(searchQuery, ignoreCase = true) ||
+                        notification.volumeType.contains(searchQuery, ignoreCase = true)
+            }
+        }
     }
 
     Scaffold(
@@ -98,51 +119,94 @@ fun NotificationScreenUI(
             )
         }
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(48.dp),
-                    color = Color(0xFF2f80eb)
-                )
-            } else {
-                if (notifications.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        items(notifications) { notification ->
-                            NotificationCylinderCard(
-                                currentlyIssuedTo = notification.currentlyIssuedTo,
-                                issueDate = notification.issueDate,
-                                sellingPrice = notification.sellingPrice,
-                                volumeType = notification.volumeType,
-                                gasType = notification.gasType,
-                                serialNumber = notification.serialNumber,
-                                daysRemaining = notification.daysRemaining,
-                                onExtendDueDays = {
-                                    selectedSerialNumber = notification.serialNumber
-                                    showDialog = true
-                                }
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search by serial number, customer, gas type...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = Color(0xFF2f80eb)
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear search",
+                                tint = Color(0xFF2f80eb)
                             )
                         }
                     }
-                } else {
-                    Text(
-                        text = "No notifications found.",
+                },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color(0xFF2f80eb),
+                    unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color(0xFF2f80eb)
+                ),
+                shape = RoundedCornerShape(8.dp),
+                singleLine = true
+            )
+
+            // Content area
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .align(Alignment.Center),
-                        fontSize = 16.sp,
-                        color = Color.Gray
+                            .align(Alignment.Center)
+                            .size(48.dp),
+                        color = Color(0xFF2f80eb)
                     )
+                } else {
+                    if (filteredNotifications.isNotEmpty()) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            items(filteredNotifications) { notification ->
+                                NotificationCylinderCard(
+                                    currentlyIssuedTo = notification.currentlyIssuedTo,
+                                    issueDate = notification.issueDate,
+                                    sellingPrice = notification.sellingPrice,
+                                    volumeType = notification.volumeType,
+                                    gasType = notification.gasType,
+                                    serialNumber = notification.serialNumber,
+                                    daysRemaining = notification.daysRemaining,
+                                    onExtendDueDays = {
+                                        selectedSerialNumber = notification.serialNumber
+                                        showDialog = true
+                                    }
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = if (searchQuery.isEmpty()) "No notifications found."
+                            else "No matches found for \"$searchQuery\"",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .align(Alignment.Center),
+                            fontSize = 16.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }

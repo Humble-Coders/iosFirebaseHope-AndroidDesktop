@@ -1601,7 +1601,7 @@ fun CheckoutDialog(
                 Column {
                     // Display base price
                     Text(
-                        text = "Base Price: $${totalPrice}",
+                        text = "Base Price: Rs.${totalPrice}",
                         fontSize = 16.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )

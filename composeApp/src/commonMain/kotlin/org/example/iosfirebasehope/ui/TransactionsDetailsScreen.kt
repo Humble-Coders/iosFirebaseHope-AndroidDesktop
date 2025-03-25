@@ -131,9 +131,12 @@ fun TransactionDetailsScreen(
                 }
 
                 // Transaction Type Cards
+                // Inside TransactionDetailsScreen, replace the Transaction Type Cards section with this code:
+
+// Transaction Type Cards
                 item {
                     TransactionTypeCard(
-                        title = "Cylinders Issued",
+                        title = "Cyls Issued",
                         count = cylindersIssued.size,
                         onClick = { showCylindersIssuedPopup = true }
                     )
@@ -141,21 +144,26 @@ fun TransactionDetailsScreen(
 
                 item {
                     TransactionTypeCard(
-                        title = "Cylinders Returned",
+                        title = "Cyls Returned",
                         count = cylindersReturned.size,
                         onClick = { showCylindersReturnedPopup = true }
                     )
                 }
 
                 item {
+                    // For LPG, show the total quantity instead of list size
+                    val totalLpgQuantity = lpgIssued.sumOf {
+                        (it["Quantity"] ?: "0").toIntOrNull() ?: 0
+                    }
                     TransactionTypeCard(
                         title = "LPG Issued",
-                        count = lpgIssued.size,
+                        count = totalLpgQuantity,
                         onClick = { showLPGIssuedPopup = true }
                     )
                 }
 
                 item {
+                    // For Inventory, show the list size as before
                     TransactionTypeCard(
                         title = "Inventory Issued",
                         count = inventoryIssued.size,

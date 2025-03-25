@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
@@ -37,6 +38,7 @@ import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -59,7 +61,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -77,10 +81,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.example.iosfirebasehope.navigation.components.SendForRefillingComponent
 import org.example.iosfirebasehope.navigation.events.SendForRefillingEvent
-
-
-
-
 @Composable
 fun SendForRefillingScreenUI(
     component: SendForRefillingComponent,
@@ -1599,239 +1599,6 @@ suspend fun checkoutCylindersRef(
     }
 }
 
-
-
-
-//suspend fun checkoutCylindersRef(
-//    db: FirebaseFirestore,
-//    VendorName: String?,
-//    issuedCylinders: List<IssuedCylinder>,
-//    issueDate: String,
-//    cash: String,
-//    credit: String,
-//    onCurrentDateTime: (String) -> Unit
-//): Boolean {
-//    if (VendorName == null || issueDate.isEmpty()) return false
-//
-//    try {
-//        // Get the current date and time in the format "yyyy-MM-dd_HH:mm:ss"
-//        val currentTime = Clock.System.now()
-//            .toLocalDateTime(TimeZone.currentSystemDefault())
-//            .time
-//            .toString()
-//
-//        // Combine issueDate with current time
-//        val dateTimeString = "${issueDate}_${currentTime}"
-//            .replace(":", "-")
-//            .substringBefore(".")
-//
-//        onCurrentDateTime(dateTimeString)
-//
-//        // Reference to the Transactions collection
-//        val transactionsRef = db.collection("TransactionVendor")
-//            .document(VendorName)
-//            .collection("DateAndTime")
-//            .document(dateTimeString)
-//
-//        transactionsRef.set(mapOf("Date" to dateTimeString))
-//
-//        // Create the "Transaction Details" collection
-//        val transactionDetailsRef = transactionsRef.collection("Transaction Details")
-//
-//        // Push Cash document
-//        transactionDetailsRef.document("Cash").set(mapOf("Amount" to cash))
-//
-//        // Push Credit document
-//        transactionDetailsRef.document("Credit").set(mapOf("Amount" to credit))
-//
-//        // Push Cylinders Issued document
-//        val cylindersIssued = issuedCylinders.filter { it.gasType != "LPG" }.map { cylinder ->
-//            mapOf(
-//                "Serial Number" to cylinder.serialNumber,
-//                "Issue Date" to issueDate
-//            )
-//        }
-//        transactionDetailsRef.document("Cylinders Issued").set(mapOf("CylindersIssued" to cylindersIssued))
-//
-//        // Push Cylinders Returned document (empty for now)
-//        transactionDetailsRef.document("Cylinders Returned").set(mapOf("CylindersReturned" to emptyList<String>()))
-//
-//        // Push LPG Issued document
-//        val lpgIssued = issuedCylinders.filter { it.gasType == "LPG" }.groupBy { it.volumeType }.map { (volumeType, cylinders) ->
-//            mapOf(
-//                "Volume Type" to volumeType,
-//                "Quantity" to cylinders.sumOf { it.quantity },
-//                "Date" to issueDate
-//            )
-//        }
-//        transactionDetailsRef.document("LPG Issued").set(mapOf("LPGIssued" to lpgIssued))
-//
-//
-//
-//        // Update non-LPG cylinders in Vendors > Issued Cylinders > Names > VendorName > Details
-//        val nonLpgCylinders = issuedCylinders.filter { it.gasType != "LPG" }
-//        if (nonLpgCylinders.isNotEmpty()) {
-//            val issuedCylindersRef = db.collection("Vendors")
-//                .document("Issued Cylinders")
-//                .collection("Names")
-//                .document(VendorName)
-//
-//            // Fetch existing Details array
-//            val snapshot = issuedCylindersRef.get()
-//            val existingDetails = if (snapshot.exists) {
-//                snapshot.get("Details") as? List<String> ?: emptyList()
-//            } else {
-//                emptyList()
-//            }
-//
-//            // Add new serial numbers to the existing array
-//            val newSerialNumbers = nonLpgCylinders.map { it.serialNumber }
-//            val updatedDetails = existingDetails + newSerialNumbers
-//
-//            // Update the document with the new array
-//            issuedCylindersRef.set(mapOf("Details" to updatedDetails))
-//        }
-//
-//        // Update LPG quantities in Vendors > LPG Issued > Names > VendorName
-//        val lpgCylinders = issuedCylinders.filter { it.gasType == "LPG" }
-//        if (lpgCylinders.isNotEmpty()) {
-//            val lpgIssuedRef = db.collection("Vendors")
-//                .document("LPG Issued")
-//                .collection("Names")
-//                .document(VendorName)
-//
-//            // Fetch existing LPG quantities map
-//            val snapshot = lpgIssuedRef.get()
-//            val existingLpgQuantities = if (snapshot.exists) {
-//                snapshot.get("Quantities") as? Map<String, String> ?: emptyMap()
-//            } else {
-//                emptyMap()
-//            }
-//
-//            // Update quantities for each volume type
-//            val updatedLpgQuantities = lpgCylinders.groupBy { it.volumeType.replace(".",",") }.mapValues { (volumeType, cylinders) ->
-//                val existingQuantity = existingLpgQuantities[volumeType]?.toIntOrNull() ?: 0
-//                val newQuantity = existingQuantity + cylinders.sumOf { it.quantity }
-//                newQuantity.toString() // Store as string
-//            }
-//
-//            // Merge the existing quantities with the updated quantities
-//            val mergedLpgQuantities = existingLpgQuantities.toMutableMap().apply {
-//                updatedLpgQuantities.forEach { (volumeType, quantity) ->
-//                    this[volumeType.replace(".",",")] = quantity
-//                }
-//            }
-//
-//            // Update the document with the merged map
-//            lpgIssuedRef.set(mapOf("Quantities" to mergedLpgQuantities))
-//        }
-//
-//        // Update CylinderDetails in Cylinders > Cylinders > CylinderDetails
-//        val nonLpgCylinderSerialNumbers = nonLpgCylinders.map { it.serialNumber }
-//        if (nonLpgCylinderSerialNumbers.isNotEmpty()) {
-//            val cylindersRef = db.collection("Cylinders").document("Cylinders")
-//
-//            // Fetch existing CylinderDetails array
-//            val snapshot = cylindersRef.get()
-//            val cylinderDetails = if (snapshot.exists) {
-//                snapshot.get("CylinderDetails") as? List<Map<String, String>> ?: emptyList()
-//            } else {
-//                emptyList()
-//            }
-//
-//            // Update the status for cylinders
-//            val updatedCylinderDetails = cylinderDetails.map { cylinder ->
-//                if (cylinder["Serial Number"] in nonLpgCylinderSerialNumbers) {
-//                    cylinder.toMutableMap().apply {
-//                        this["Status"] = "At Plant" // Use issueDate as the Notifications Date
-//                    }
-//                } else {
-//                    cylinder
-//                }
-//            }
-//
-//            // Save the updated CylinderDetails array back to Firestore
-//            cylindersRef.set(mapOf("CylinderDetails" to updatedCylinderDetails))
-//        }
-//
-//        // Create collections for each non-LPG cylinder in Cylinders > Vendors
-//        for (cylinder in nonLpgCylinders) {
-//            val cylinderRef = db.collection("Cylinders")
-//                .document("Vendors")
-//                .collection(cylinder.serialNumber)
-//
-//            // Create Currently Issued To document
-//            cylinderRef.document("Refill To").set(
-//                mapOf(
-//                    "name" to VendorName,
-//                    "date" to issueDate
-//                )
-//            )
-//
-//            // Add the current Vendor details to the existing array
-//
-//
-//        }
-//        val customerDetailsRef = db.collection("Vendors")
-//            .document("Details")
-//            .collection("Names")
-//            .document(VendorName)
-//
-//        // Fetch the existing "Details" map
-//        val customerDetailsSnapshot = customerDetailsRef.get()
-//        if (customerDetailsSnapshot.exists) {
-//            val detailsMap = customerDetailsSnapshot.get("Details") as? Map<String, String> ?: emptyMap()
-//
-//            // Increment the "Credit" field
-//            val currentCredit = detailsMap["Credit"]?.toDoubleOrNull() ?: 0.0
-//            val newCredit = currentCredit + (credit.toDoubleOrNull() ?: 0.0)
-//
-//            // Update the "Deposit" field with the updatedDeposit value
-//
-//
-//            // Create the updated map
-//            val updatedDetailsMap = detailsMap.toMutableMap().apply {
-//                this["Credit"] = newCredit.toString()
-//            }
-//
-//            // Save the updated map back to Firestore
-//            customerDetailsRef.update("Details" to updatedDetailsMap)
-//            println("Successfully updated 'Credit' fields for customer $VendorName")
-//        } else {
-//            throw Exception("Document 'Customers > Details > Names > $VendorName' does not exist")
-//        }
-//
-//        // Update LPGFull map in Cylinders > LPG document
-//        val lpgDocumentRef = db.collection("Cylinders").document("LPG")
-//        val lpgDocumentSnapshot = lpgDocumentRef.get()
-//        if (lpgDocumentSnapshot.exists) {
-//            val lpgEmptyMap = lpgDocumentSnapshot.get("LPGEmpty") as? Map<String, Int> ?: emptyMap()
-//            val updatedLpgEmptyMap = lpgCylinders.groupBy { it.volumeType.replace(".",",") }.entries.fold(lpgEmptyMap.toMutableMap()) { acc, entry ->
-//                val (volumeType, cylinders) = entry
-//                val issuedQuantity = cylinders.sumOf { it.quantity }
-//                val currentQuantity = acc[volumeType] ?: 0
-//                acc[volumeType] = currentQuantity - issuedQuantity
-//                acc
-//            }
-//            lpgDocumentRef.update("LPGEmpty" to updatedLpgEmptyMap)
-//        }
-//
-//        return true
-//    } catch (e: Exception) {
-//        println("Error in checkoutCylinders: ${e.message}")
-//        return false
-//    }
-//}
-
-
-
-
-
-
-
-
-
-
 @Composable
 fun IssuedCylinderCardRef(
     cylinder: IssuedCylinder,
@@ -1917,5 +1684,3 @@ fun IssuedCylinderCardRef(
         }
     }
 }
-
-

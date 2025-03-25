@@ -1,10 +1,8 @@
 package org.example.iosfirebasehope.ui
 
-
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.Alignment
-
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,11 +10,14 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import org.example.iosfirebasehope.navigation.components.TransactionVendorDetailsScreenComponent
@@ -75,209 +76,230 @@ fun TransactionVendorDetailsScreen(
                             contentDescription = "Back"
                         )
                     }
-                }
+                },
+                elevation = 8.dp
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
-            if (transactionDetails != null && cylinderDetails != null) {
-                // Display transaction details
-                val cashAmount = transactionDetails!!["Cash"] as String
-                val creditAmount = transactionDetails!!["Credit"] as String
-                val cylindersIssued = transactionDetails!!["CylindersIssued"] as List<Map<String, String>>
-                val cylindersReturned = transactionDetails!!["CylindersReturned"] as List<Map<String, String>>
-                val lpgIssued = transactionDetails!!["LPGIssued"] as List<Map<String, String>>
-                val inventoryIssued = transactionDetails!!["InventoryIssued"] as List<Map<String, String>>
+        if (transactionDetails != null && cylinderDetails != null) {
+            // Extract transaction details
+            val cashAmount = transactionDetails!!["Cash"] as String
+            val creditAmount = transactionDetails!!["Credit"] as String
+            val cylindersIssued = transactionDetails!!["CylindersIssued"] as List<Map<String, String>>
+            val cylindersReturned = transactionDetails!!["CylindersReturned"] as List<Map<String, String>>
+            val lpgIssued = transactionDetails!!["LPGIssued"] as List<Map<String, String>>
+            val inventoryIssued = transactionDetails!!["InventoryIssued"] as List<Map<String, String>>
 
-                // Cash and Credit Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Cash: Rs. $cashAmount",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2E7D32)
+            // Use LazyColumn as the root container for scrollable content
+            LazyColumn(
+                modifier = Modifier
+                    .padding(
+                        top = innerPadding.calculateTopPadding(),
+                        bottom = innerPadding.calculateBottomPadding(),
+                        start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                        end = innerPadding.calculateEndPadding(LayoutDirection.Ltr)
                     )
-                    Text(
-                        text = "Credit: Rs. $creditAmount",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFD32F2F)
+                    .fillMaxSize()
+            ) {
+                // Summary Card
+                item {
+                    TransactionSummaryCard(
+                        cashAmount = cashAmount,
+                        creditAmount = creditAmount
                     )
                 }
 
-                // Cylinders Issued Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .clickable { showCylindersIssuedPopup = true },
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(8.dp),
-                    backgroundColor = Color(0xFFE8F5E9)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Cylinders Issued",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        cylindersIssued.forEach { cylinder ->
-                            val serialNumber = cylinder["Serial Number"] ?: "N/A"
-                            val cylinderInfo = cylinderDetails!!.find { it["Serial Number"] == serialNumber }
-                            val gasType = cylinderInfo?.get("Gas Type") ?: "N/A"
-                            val volumeType = cylinderInfo?.get("Volume Type") ?: "N/A"
-                            Text(
-                                text = "Serial: $serialNumber, Gas: $gasType, Volume: $volumeType",
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Cylinders Returned Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .clickable { showCylindersReturnedPopup = true },
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(8.dp),
-                    backgroundColor = Color(0xFFE8F5E9)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Cylinders Returned",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        cylindersReturned.forEach { cylinder ->
-                            val serialNumber = cylinder["Serial Number"] ?: "N/A"
-                            val cylinderInfo = cylinderDetails!!.find { it["Serial Number"] == serialNumber }
-                            val gasType = cylinderInfo?.get("Gas Type") ?: "N/A"
-                            val volumeType = cylinderInfo?.get("Volume Type") ?: "N/A"
-                            Text(
-                                text = "Serial: $serialNumber, Gas: $gasType, Volume: $volumeType",
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        }
-                    }
-                }
-
-                // LPG Issued Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .clickable { showLPGIssuedPopup = true },
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(8.dp),
-                    backgroundColor = Color(0xFFE8F5E9)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "LPG Issued",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        lpgIssued.forEach { lpg ->
-                            Text(
-                                text = "Quantity: ${lpg["Quantity"] ?: "N/A"}, Volume Type: ${lpg["Volume Type"] ?: "N/A"}",
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Inventory Issued Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .clickable { showInventoryIssuedPopup = true },
-                    elevation = 4.dp,
-                    shape = RoundedCornerShape(8.dp),
-                    backgroundColor = Color(0xFFE8F5E9)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Inventory Issued",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        inventoryIssued.forEach { inventory ->
-                            Text(
-                                text = "Name: ${inventory["Name"] ?: "N/A"}, Quantity: ${inventory["Quantity"] ?: "N/A"}",
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Show Pop-ups based on state
-                if (showCylindersIssuedPopup) {
-                    TransactionDetailsPopup(
-                        title = "Cylinders Issued",
-                        items = cylindersIssued,
-                        cylinderDetails = cylinderDetails!!,
-                        onDismiss = { showCylindersIssuedPopup = false }
+                // Transaction Type Cards
+                item {
+                    TransactionTypeCard(
+                        title = "Cyls Issued",
+                        count = cylindersIssued.size,
+                        onClick = { showCylindersIssuedPopup = true }
                     )
                 }
 
-                if (showCylindersReturnedPopup) {
-                    TransactionDetailsPopup(
-                        title = "Cylinders Returned",
-                        items = cylindersReturned,
-                        cylinderDetails = cylinderDetails!!,
-                        onDismiss = { showCylindersReturnedPopup = false }
+                item {
+                    TransactionTypeCard(
+                        title = "Cyls Returned",
+                        count = cylindersReturned.size,
+                        onClick = { showCylindersReturnedPopup = true }
                     )
                 }
 
-                if (showLPGIssuedPopup) {
-                    TransactionDetailsPopup(
+                item {
+                    TransactionTypeCard(
                         title = "LPG Issued",
-                        items = lpgIssued,
-                        cylinderDetails = emptyList(), // Not needed for LPG
-                        onDismiss = { showLPGIssuedPopup = false }
+                        count = lpgIssued.size,
+                        onClick = { showLPGIssuedPopup = true }
                     )
                 }
 
-                if (showInventoryIssuedPopup) {
-                    TransactionDetailsPopup(
+                item {
+                    TransactionTypeCard(
                         title = "Inventory Issued",
-                        items = inventoryIssued,
-                        cylinderDetails = emptyList(), // Not needed for Inventory
-                        onDismiss = { showInventoryIssuedPopup = false }
+                        count = inventoryIssued.size,
+                        onClick = { showInventoryIssuedPopup = true }
                     )
                 }
-            } else {
-                // Show loading or error message
+
+                // Add some spacing at the bottom
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+
+            // Show Pop-ups based on state
+            if (showCylindersIssuedPopup) {
+                TransactionDetailsPopup(
+                    title = "Cylinders Issued",
+                    items = cylindersIssued,
+                    cylinderDetails = cylinderDetails!!,
+                    onDismiss = { showCylindersIssuedPopup = false }
+                )
+            }
+
+            if (showCylindersReturnedPopup) {
+                TransactionDetailsPopup(
+                    title = "Cylinders Returned",
+                    items = cylindersReturned,
+                    cylinderDetails = cylinderDetails!!,
+                    onDismiss = { showCylindersReturnedPopup = false }
+                )
+            }
+
+            if (showLPGIssuedPopup) {
+                TransactionDetailsPopup(
+                    title = "LPG Issued",
+                    items = lpgIssued,
+                    cylinderDetails = emptyList(), // Not needed for LPG
+                    onDismiss = { showLPGIssuedPopup = false }
+                )
+            }
+
+            if (showInventoryIssuedPopup) {
+                TransactionDetailsPopup(
+                    title = "Inventory Issued",
+                    items = inventoryIssued,
+                    cylinderDetails = emptyList(), // Not needed for Inventory
+                    onDismiss = { showInventoryIssuedPopup = false }
+                )
+            }
+        } else {
+            // Loading indicator
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransactionSummaryCard(
+    cashAmount: String,
+    creditAmount: String
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        elevation = 4.dp,
+        shape = RoundedCornerShape(12.dp),
+        backgroundColor = Color(0xFFF5F5F5)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Transaction Summary",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2f80eb),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                SummaryItem(
+                    title = "Cash",
+                    value = "Rs. $cashAmount",
+                    color = Color(0xFF2E7D32)
+                )
+
+                SummaryItem(
+                    title = "Credit",
+                    value = "Rs. $creditAmount",
+                    color = Color(0xFFD32F2F)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryItem(
+    title: String,
+    value: String,
+    color: Color
+) {
+    Column {
+        Text(
+            text = title,
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+        Text(
+            text = value,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+    }
+}
+
+@Composable
+private fun TransactionTypeCard(
+    title: String,
+    count: Int,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = onClick),
+        elevation = 4.dp,
+        shape = RoundedCornerShape(12.dp),
+        backgroundColor = Color(0xFFE8F5E9)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2E7D32)
+            )
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                backgroundColor = Color(0xFF2E7D32)
+            ) {
                 Text(
-                    text = "Loading transaction details...",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .align(Alignment.CenterHorizontally)
+                    text = count.toString(),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
         }
@@ -291,54 +313,260 @@ private fun TransactionDetailsPopup(
     cylinderDetails: List<Map<String, String>>,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = title, fontSize = 20.sp, fontWeight = FontWeight.Bold) },
-        text = {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 400.dp)
-            ) {
-                items(items) { item ->
-                    when (title) {
-                        "Cylinders Issued", "Cylinders Returned" -> {
-                            val serialNumber = item["Serial Number"] ?: "N/A"
-                            val cylinderInfo = cylinderDetails.find { it["Serial Number"] == serialNumber }
-                            val gasType = cylinderInfo?.get("Gas Type") ?: "N/A"
-                            val volumeType = cylinderInfo?.get("Volume Type") ?: "N/A"
-                            CylinderDetailItem(
-                                serialNumber = serialNumber,
-                                totalPrice = item["Price"] ?: "N/A",
-                                gasType = gasType,
-                                volumeType = volumeType
-                            )
-                        }
-                        "LPG Issued" -> {
-                            LPGDetailItem(
-                                quantity = item["Quantity"] ?: "N/A",
-                                price = item["Price"] ?: "N/A",
-                                date = item["Date"] ?: "N/A",
-                                volumeType = item["Volume Type"] ?: "N/A"
-                            )
-                        }
-                        "Inventory Issued" -> {
-                            InventoryDetailItem(
-                                name = item["Name"] ?: "N/A",
-                                price = item["Price"] ?: "N/A",
-                                quantity = item["Quantity"] ?: "N/A"
-                            )
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column {
+                // Title with close button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2f80eb)
+                    )
+
+                    Button(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFF2f80eb),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Close")
+                    }
+                }
+
+                // Divider
+                Divider(color = Color.LightGray, thickness = 1.dp)
+
+                // Content
+                if (items.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No items to display",
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        items(items) { item ->
+                            when (title) {
+                                "Cylinders Issued", "Cylinders Returned" -> {
+                                    val serialNumber = item["Serial Number"] ?: "N/A"
+                                    val cylinderInfo = cylinderDetails.find { it["Serial Number"] == serialNumber }
+                                    val gasType = cylinderInfo?.get("Gas Type") ?: "N/A"
+                                    val volumeType = cylinderInfo?.get("Volume Type") ?: "N/A"
+                                    CylinderDetailItem(
+                                        serialNumber = serialNumber,
+                                        totalPrice = item["Price"] ?: "N/A",
+                                        gasType = gasType,
+                                        volumeType = volumeType
+                                    )
+                                }
+                                "LPG Issued" -> {
+                                    LPGDetailItem(
+                                        quantity = item["Quantity"] ?: "N/A",
+                                        price = item["Price"] ?: "N/A",
+                                        date = item["Date"] ?: "N/A",
+                                        volumeType = item["Volume Type"] ?: "N/A"
+                                    )
+                                }
+                                "Inventory Issued" -> {
+                                    InventoryDetailItem(
+                                        name = item["Name"] ?: "N/A",
+                                        price = item["Price"] ?: "N/A",
+                                        quantity = item["Quantity"] ?: "N/A"
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                 }
             }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Close")
+        }
+    }
+}
+
+@Composable
+private fun CylinderDetailItem(
+    serialNumber: String,
+    totalPrice: String,
+    gasType: String,
+    volumeType: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = 2.dp,
+        shape = RoundedCornerShape(8.dp),
+        backgroundColor = Color(0xFFE8F5E9)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text(
+                text = "Serial Number: $serialNumber",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2E7D32)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Gas: $gasType",
+                    fontSize = 14.sp,
+                    color = Color(0xFF2E7D32)
+                )
+
+                Text(
+                    text = "Volume: $volumeType",
+                    fontSize = 14.sp,
+                    color = Color(0xFF2E7D32)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Price: Rs. $totalPrice",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2E7D32)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LPGDetailItem(
+    quantity: String,
+    price: String,
+    date: String,
+    volumeType: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = 2.dp,
+        shape = RoundedCornerShape(8.dp),
+        backgroundColor = Color(0xFFE8F5E9)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text(
+                text = "Volume: $volumeType",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2E7D32)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Quantity: $quantity",
+                    fontSize = 14.sp,
+                    color = Color(0xFF2E7D32)
+                )
+
+                Text(
+                    text = "Date: $date",
+                    fontSize = 14.sp,
+                    color = Color(0xFF2E7D32)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Price: Rs. $price",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2E7D32)
+            )
+        }
+    }
+}
+
+@Composable
+private fun InventoryDetailItem(
+    name: String,
+    price: String,
+    quantity: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = 2.dp,
+        shape = RoundedCornerShape(8.dp),
+        backgroundColor = Color(0xFFE8F5E9)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text(
+                text = "Name: $name",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2E7D32)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Quantity: $quantity",
+                    fontSize = 14.sp,
+                    color = Color(0xFF2E7D32)
+                )
+
+                Text(
+                    text = "Price: Rs. $price",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2E7D32)
+                )
             }
         }
-    )
+    }
 }
 
 // Fetch cylinder details from the Cylinders collection
@@ -383,148 +611,4 @@ private suspend fun fetchBillTransactionDetails(
         "LPGIssued" to lpgIssued,
         "InventoryIssued" to inventoryIssued
     )
-}
-
-// Composable functions for CylinderDetailItem, LPGDetailItem, and InventoryDetailItem remain unchanged
-
-@Composable
-private fun CylinderDetailItem(
-    serialNumber: String,
-    totalPrice: String,
-    gasType: String,
-    volumeType: String
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        elevation = 4.dp,
-        shape = RoundedCornerShape(8.dp),
-        backgroundColor = Color(0xFFE8F5E9) // Light green background
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Serial Number
-            Text(
-                text = "Serial Number: $serialNumber",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-
-            // Total Price
-            Text(
-                text = "Total Price: Rs. $totalPrice",
-                fontSize = 14.sp,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-
-            // Gas Type
-            Text(
-                text = "Gas Type: $gasType",
-                fontSize = 14.sp,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-
-            // Volume Type
-            Text(
-                text = "Volume Type: $volumeType",
-                fontSize = 14.sp,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-        }
-    }
-}
-
-@Composable
-private fun LPGDetailItem(
-    quantity: String,
-    price: String,
-    date: String,
-    volumeType: String
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        elevation = 4.dp,
-        shape = RoundedCornerShape(8.dp),
-        backgroundColor = Color(0xFFE8F5E9) // Light green background
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Quantity
-            Text(
-                text = "Quantity: $quantity",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-
-            // Price
-            Text(
-                text = "Price: Rs. $price",
-                fontSize = 14.sp,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-
-            // Date
-            Text(
-                text = "Date: $date",
-                fontSize = 14.sp,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-
-            // Volume Type
-            Text(
-                text = "Volume Type: $volumeType",
-                fontSize = 14.sp,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-        }
-    }
-}
-
-@Composable
-private fun InventoryDetailItem(
-    name: String,
-    price: String,
-    quantity: String
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        elevation = 4.dp,
-        shape = RoundedCornerShape(8.dp),
-        backgroundColor = Color(0xFFE8F5E9) // Light green background
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Name
-            Text(
-                text = "Name: $name",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-
-            // Price
-            Text(
-                text = "Price: Rs. $price",
-                fontSize = 14.sp,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-
-            // Quantity
-            Text(
-                text = "Quantity: $quantity",
-                fontSize = 14.sp,
-                color = Color(0xFF2E7D32) // Dark green color
-            )
-        }
-    }
 }

@@ -722,7 +722,6 @@ private fun SearchHeader(
 
 @Composable
 fun GlowingIconCard(currentlyIssuedTo: Map<String, String>?, currentCylinderDetails: Map<String, String>) {
-  
 
     // Calculate days held for this cylinder
     val daysHeld = remember(currentlyIssuedTo) {
@@ -740,29 +739,56 @@ fun GlowingIconCard(currentlyIssuedTo: Map<String, String>?, currentCylinderDeta
         }
     }
 
+    // Determine card appearance based on status
+    val status = currentCylinderDetails["Status"] ?: ""
+    val isAtPlant = status == "At Plant"
+    val cardBackgroundColor = if (isAtPlant) Color(0xFFF0F8FF) else Color(0xFFE8F5E9) // Light blue for At Plant, Light green for issued
+    val headerText = if (isAtPlant) "At Plant" else "Currently Issued To"
+    val headerColor = if (isAtPlant) Color(0xFF1565C0) else Color(0xFF2E7D32)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp),
         elevation = 2.dp,
         shape = RoundedCornerShape(4.dp),
-        backgroundColor = Color(0xFFE8F5E9) // Light green tint
+        backgroundColor = cardBackgroundColor
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            // "Currently Issued To" Heading
+            // Header Text (Either "Currently Issued To" or "At Plant")
             Text(
-                text = "Currently Issued To",
+                text = headerText,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E7D32),
+                color = headerColor,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
 
-            if (currentlyIssuedTo != null && currentlyIssuedTo["name"].isNullOrEmpty()) {
+            if (isAtPlant) {
+                // Display VendorName when status is "At Plant"
+                val vendorName = currentCylinderDetails["VendorName"]
+                val labelWidth = 120.dp
+
+                Row(modifier = Modifier.padding(vertical = 1.dp)) {
+                    Box(modifier = Modifier.width(labelWidth)) {
+                        Text(
+                            text = "Vendor Name:",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = Color.Black
+                        )
+                    }
+                    Text(
+                        text = vendorName ?: "Not Available",
+                        fontSize = 14.sp,
+                        color = Color.Black
+                    )
+                }
+            } else if (currentlyIssuedTo != null && currentlyIssuedTo["name"].isNullOrEmpty()) {
                 // Display "Not Issued Currently" if the name is empty
                 Text(
                     text = "Not Issued Currently",
@@ -880,7 +906,6 @@ fun GlowingIconCard(currentlyIssuedTo: Map<String, String>?, currentCylinderDeta
         }
     }
 }
-// Extracted CustomerItem composable
 
 @Composable
 private fun CustomerItem(index: Int, customer: Map<String, String>) {
