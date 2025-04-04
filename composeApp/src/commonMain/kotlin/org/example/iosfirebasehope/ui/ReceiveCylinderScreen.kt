@@ -83,9 +83,7 @@ fun ReceiveCylinderScreenUI(
 ) {
     // State variables
     val details = remember { mutableStateOf<Map<String, String>?>(null) }
-
-
-    val creditValue = remember { mutableStateOf<String?>("0") }
+    var creditValue by remember { mutableStateOf("0") } // Changed to var and initial value "0"
     val phoneNumberValue = remember { mutableStateOf<String?>(null) }
     var showReceiveCylinderDialog by remember { mutableStateOf(false) }
     var showReceiveLPGDialog by remember { mutableStateOf(false) }
@@ -96,14 +94,11 @@ fun ReceiveCylinderScreenUI(
     var cylinderDetailsList by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
     val coroutineScope = rememberCoroutineScope()
 
-
     // State for animation
     var showMainContent by remember { mutableStateOf(true) }
 
-
     // State for ReceiveDialog
     var showReceiveDialog by remember { mutableStateOf(false) }
-
 
     // Fetch Vendor details
     LaunchedEffect(VendorName) {
@@ -113,10 +108,13 @@ fun ReceiveCylinderScreenUI(
             .document(VendorName)
             .get()
 
-
         details.value = document.get("Details") as? Map<String, String>
-        phoneNumberValue.value = details.value?.get("Phone Number")?.toString()
 
+        // Properly set credit value from details
+        val vendorCredit = details.value?.get("Credit")
+        creditValue = if (vendorCredit.isNullOrEmpty()) "0" else vendorCredit
+
+        phoneNumberValue.value = details.value?.get("Phone Number")?.toString()
 
         // Fetch issued cylinders
         val issuedCylindersDoc = db.collection("Vendors")
@@ -125,7 +123,6 @@ fun ReceiveCylinderScreenUI(
             .document(VendorName)
             .get()
         issuedCylinders = issuedCylindersDoc.get("Details") as? List<String> ?: emptyList()
-
 
         // Fetch issued LPG quantities
         val issuedLPGDoc = db.collection("Vendors")
@@ -136,7 +133,6 @@ fun ReceiveCylinderScreenUI(
         issuedLPGQuantities = issuedLPGDoc.get("Quantities") as? Map<String, Int> ?: emptyMap()
     }
 
-
     // Fetch cylinder details for selected serial numbers
     LaunchedEffect(selectedCylinders) {
         if (selectedCylinders.isNotEmpty()) {
@@ -146,7 +142,6 @@ fun ReceiveCylinderScreenUI(
         }
     }
 
-
     // Function to handle deletion of non-LPG cylinders
     val onDeleteNonLPG = { cylinderDetails: Map<String, String> ->
         // Remove the cylinder from the selectedCylinders list
@@ -154,19 +149,16 @@ fun ReceiveCylinderScreenUI(
         cylinderDetailsList = cylinderDetailsList.filter { it["Serial Number"] != cylinderDetails["Serial Number"] }
     }
 
-
     // Function to handle deletion of LPG entries
     val onDeleteLPG = { volumeType: String ->
         // Remove the LPG entry from the selectedLPGQuantities map
         selectedLPGQuantities = selectedLPGQuantities - volumeType
     }
 
-
     // Function to handle the "Return LPG" button click
     val onReturnLPGClick = {
         showReceiveLPGDialog = true
     }
-
 
     // Combine LPG and non-LPG items into a single list
     val CombinedItemReceives = remember(cylinderDetailsList, selectedLPGQuantities) {
@@ -178,7 +170,6 @@ fun ReceiveCylinderScreenUI(
         }
         nonLPGItems + lpgItems
     }
-
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Top bar
@@ -205,7 +196,6 @@ fun ReceiveCylinderScreenUI(
                     )
                 }
 
-
                 Text(
                     text = "Receive Cylinders",
                     fontWeight = FontWeight.Bold,
@@ -215,7 +205,6 @@ fun ReceiveCylinderScreenUI(
                 )
             }
         }
-
 
         // Main content
         Scaffold(
@@ -256,7 +245,6 @@ fun ReceiveCylinderScreenUI(
                             }
                             Divider()
 
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.Start,
@@ -267,15 +255,13 @@ fun ReceiveCylinderScreenUI(
                                     Text(text = "Credit:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
 
-
                                 Column(modifier = Modifier.weight(1f)) {
                                     phoneNumberValue.value?.let { Text(text = it, fontSize = 14.sp) }
-                                    creditValue.value?.let { Text(text = it, fontSize = 14.sp) }
+                                    Text(text = creditValue, fontSize = 14.sp)
                                 }
                             }
                         }
                     }
-
 
                     // Row for "Return Cylinders" and "Return LPG" buttons
                     Row(
@@ -299,7 +285,6 @@ fun ReceiveCylinderScreenUI(
                             Text(text = "Receive Cylinders", fontSize = 12.sp, color = Color.White)
                         }
 
-
                         // "Return LPG" button
                         Button(
                             onClick = {
@@ -316,7 +301,6 @@ fun ReceiveCylinderScreenUI(
                         }
                     }
 
-
                     // "Cylinders for Return" text and divider
                     Row(
                         modifier = Modifier
@@ -331,26 +315,27 @@ fun ReceiveCylinderScreenUI(
                             modifier = Modifier.padding(end = 8.dp)
                         )
 
-
                         Divider(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(1.dp),
                             color = Color.Gray
                         )
+                    }
 
-
-                        // Add this right after the "Receive Cylinders" button in the Row
+                    // Show selected cylinders count separately in a new row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
                         Text(
                             text = "Selected Cylinders: ${selectedCylinders.size}",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
                             fontSize = 12.sp,
                             color = Color.Gray
                         )
                     }
-
 
                     // Combined LazyColumn for LPG and non-LPG items
                     Box(
@@ -383,7 +368,6 @@ fun ReceiveCylinderScreenUI(
                         }
                     }
 
-
                     // Animate the "Return" button at the bottom
                     AnimatedVisibility(
                         visible = showMainContent,
@@ -409,7 +393,6 @@ fun ReceiveCylinderScreenUI(
             }
         }
 
-
         // Return Cylinder Dialog (outside AnimatedVisibility)
         if (showReceiveCylinderDialog) {
             ReceiveCylinderDialog(
@@ -427,7 +410,6 @@ fun ReceiveCylinderScreenUI(
                 alreadySelectedCylinders = selectedCylinders
             )
         }
-
 
         // Return LPG Dialog (outside AnimatedVisibility)
         if (showReceiveLPGDialog) {
@@ -471,12 +453,11 @@ fun ReceiveCylinderScreenUI(
             }
         }
 
-
         // Return Dialog (outside AnimatedVisibility)
         if (showReceiveDialog) {
             ReceiveDialog(
                 VendorName = VendorName,
-                credit = creditValue.value,
+                credit = creditValue,
                 selectedCylinders = cylinderDetailsList + selectedLPGQuantities.map { (volumeType, quantity) ->
                     mapOf("Volume Type" to volumeType, "Quantity" to quantity.toString())
                 },
@@ -1194,68 +1175,59 @@ fun ReceiveDialog(
     credit: String?,
     selectedCylinders: List<Map<String, String>>,
     onDismiss: () -> Unit,
-    onReturn: (updatedDeposit: String) -> Unit, // Add updatedDeposit as a parameter
+    onReturn: (updatedDeposit: String) -> Unit,
     db: FirebaseFirestore,
     component: ReceiveCylinderScreenComponent
 ) {
-    var cashIn by remember { mutableStateOf("") }
     var cashOut by remember { mutableStateOf("") }
     var creditInput by remember { mutableStateOf("") }
-    var deductRentFromDeposit by remember { mutableStateOf(false) }
-    var rentFactor by remember { mutableStateOf("30") }
     var isLoading by remember { mutableStateOf(false) }
 
+    // Parse current credit to double, defaulting to 0.0 if null or not a number
+    val currentCredit = credit?.toDoubleOrNull() ?: 0.0
 
+    // Calculate credit after cashOut deduction
+    val creditAfterCashOut = remember(currentCredit, cashOut) {
+        val cashOutValue = cashOut.toDoubleOrNull() ?: 0.0
+        maxOf(0.0, currentCredit - cashOutValue)
+    }
 
-
-
-
-
-
-
-
-
+    // Calculate final credit after adding creditInput
+    val finalCredit = remember(creditAfterCashOut, creditInput) {
+        val creditInputValue = creditInput.toDoubleOrNull() ?: 0.0
+        creditAfterCashOut + creditInputValue
+    }
 
     AlertDialog(
-        onDismissRequest = {if(isLoading) {} else onDismiss},
-        title = {Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(VendorName, fontSize = 20.sp)
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = Color(0xFF2f80eb)
-                )
+        onDismissRequest = { if(isLoading) {} else onDismiss },
+        title = {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(VendorName, fontSize = 20.sp)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color(0xFF2f80eb)
+                    )
+                }
             }
-        }},
+        },
         text = {
             Column {
-
-
+                // Current credit display
                 Text(
-                    text = "Credit: ${credit ?: "0"}",
+                    text = "Current Credit: ${credit ?: "0"}",
                     fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-
-
-
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-
-                // Cash in field
-
-
-
-
-                // Cash out field
+                // Cash out field - deducts from credit
                 OutlinedTextField(
                     value = cashOut,
                     onValueChange = { cashOut = it },
@@ -1268,7 +1240,7 @@ fun ReceiveDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Cash out", color = Color(0xAAD32F2F))
+                            Text("Cash out (deducts from credit)", color = Color(0xAAD32F2F))
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1281,14 +1253,85 @@ fun ReceiveDialog(
                     )
                 )
 
+                // Show credit after cash out deduction if cash out value is entered
+                if (cashOut.isNotEmpty() && cashOut != "0") {
+                    Text(
+                        text = "Credit after cash out: $creditAfterCashOut",
+                        fontSize = 12.sp,
+                        color = Color(0xAAD32F2F),
+                        modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                    )
+                }
 
+                // Add credit field
                 OutlinedTextField(
                     value = creditInput,
                     onValueChange = { creditInput = it },
-                    label = { Text("Credit") },
+                    label = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Credit",
+                                tint = Color(0xFF388E3C),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Add Credit", color = Color(0xFF388E3C))
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFF388E3C),
+                        unfocusedBorderColor = Color(0xFF388E3C).copy(alpha = 0.5f)
+                    )
                 )
+
+                // Final summary box showing the resulting credit balance
+                if ((cashOut.isNotEmpty() && cashOut != "0") || (creditInput.isNotEmpty() && creditInput != "0")) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = 4.dp,
+                        backgroundColor = Color(0xFFF1F8E9)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Text(
+                                text = "Summary",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Starting Credit: $currentCredit",
+                                fontSize = 12.sp
+                            )
+                            if (cashOut.isNotEmpty() && cashOut != "0") {
+                                Text(
+                                    text = "Cash Out: -${cashOut.toDoubleOrNull() ?: 0.0}",
+                                    fontSize = 12.sp,
+                                    color = Color(0xAAD32F2F)
+                                )
+                            }
+                            if (creditInput.isNotEmpty() && creditInput != "0") {
+                                Text(
+                                    text = "Credit Added: +${creditInput.toDoubleOrNull() ?: 0.0}",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF388E3C)
+                                )
+                            }
+                            Divider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text(
+                                text = "Final Credit: $finalCredit",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = Color(0xFF1B5E20)
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -1303,13 +1346,12 @@ fun ReceiveDialog(
                             VendorName = VendorName,
                             cashOut = cashOut,
                             creditInput = creditInput,
-                            // Pass the updatedDeposit value
                             onSuccess = {
                                 // Call the original onReturn callback
                                 component.onEvent(ReceiveCylinderScreenEvent.OnConfirmClick)
                             },
-                            onFailure = {
-                                println("Failed to update Firestore: $")
+                            onFailure = { e ->
+                                println("Failed to update Firestore: $e")
                             }
                         )
                     }
@@ -1317,7 +1359,7 @@ fun ReceiveDialog(
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF4CAF50)),
                 enabled = !isLoading
             ) {
-                Text("Return", color = Color.White, fontSize = 14.sp)
+                Text("Receive", color = Color.White, fontSize = 14.sp)
             }
         },
         dismissButton = {
@@ -1331,6 +1373,8 @@ fun ReceiveDialog(
         }
     )
 }
+
+
 suspend fun CustomCheckboxReceive(
     db: FirebaseFirestore,
     selectedCylinders: List<Map<String, String>>,
@@ -1347,7 +1391,6 @@ suspend fun CustomCheckboxReceive(
         println("Non-LPG Cylinders: $nonLpgCylinders")
         println("LPG Cylinders: $lpgCylinders")
 
-
         // Get current date and time information once
         val currentDateTime = Clock.System.now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -1356,12 +1399,10 @@ suspend fun CustomCheckboxReceive(
             .replace(":", "-")
             .substringBefore(".")
 
-
         val currentDate = Clock.System.now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
             .date
             .toString()
-
 
         // Extract serialNumbers and prepare LPG data for batch operations
         val serialNumbers = nonLpgCylinders.mapNotNull { it["Serial Number"] }
@@ -1371,7 +1412,6 @@ suspend fun CustomCheckboxReceive(
             cylinders.sumOf { it["Quantity"]?.toIntOrNull() ?: 0 }
         }
 
-
         // Prepare cylinders returned data
         val cylindersReturned = nonLpgCylinders.map { cylinder ->
             mapOf(
@@ -1379,7 +1419,6 @@ suspend fun CustomCheckboxReceive(
                 "Return Date" to currentDate
             )
         }
-
 
         // Execute parallel operations with coroutineScope
         coroutineScope {
@@ -1390,17 +1429,13 @@ suspend fun CustomCheckboxReceive(
                     .collection("DateAndTime")
                     .document(currentDateTime)
 
-
                 val batch = db.batch()
-
 
                 // Main transaction document
                 batch.set(transactionsRef, mapOf("Date" to currentDate))
 
-
                 // Transaction details
                 val transactionDetailsRef = transactionsRef.collection("Transaction Details")
-
 
                 batch.set(transactionDetailsRef.document("Cash Out"), mapOf("Amount" to cashOut))
                 batch.set(transactionDetailsRef.document("Credit"), mapOf("Amount" to creditInput))
@@ -1415,10 +1450,8 @@ suspend fun CustomCheckboxReceive(
                 batch.set(transactionDetailsRef.document("LPG Returned"),
                     mapOf("LPGReturned" to lpgVolumeUpdates))
 
-
                 batch.commit()
             }
-
 
             // TASK 2: Update CylinderDetails array for all non-LPG cylinders
             val updateCylinderDetailsTask = async {
@@ -1426,14 +1459,11 @@ suspend fun CustomCheckboxReceive(
                     val cylindersRef = db.collection("Cylinders").document("Cylinders")
                     val snapshot = cylindersRef.get()
 
-
                     if (snapshot.exists) {
                         val cylinderDetails = snapshot.get("CylinderDetails") as? List<Map<String, String>> ?: emptyList()
 
-
                         // Create a set for faster lookups
                         val serialNumberSet = serialNumbers.toSet()
-
 
                         // Update the fields for matching cylinders
                         val updatedCylinderDetails = cylinderDetails.map { details ->
@@ -1450,13 +1480,11 @@ suspend fun CustomCheckboxReceive(
                             }
                         }
 
-
                         // Update in a single operation
                         cylindersRef.update("CylinderDetails" to updatedCylinderDetails)
                     }
                 }
             }
-
 
             // TASK 3: Update Issued Cylinders array for vendor
             val updateIssuedCylindersTask = async {
@@ -1466,24 +1494,19 @@ suspend fun CustomCheckboxReceive(
                         .collection("Names")
                         .document(VendorName)
 
-
                     val issuedCylindersSnapshot = issuedCylindersRef.get()
-
 
                     if (issuedCylindersSnapshot.exists) {
                         val detailsArray = issuedCylindersSnapshot.get("Details") as? List<String> ?: emptyList()
 
-
                         // Remove all serial numbers in one operation
                         val updatedDetailsArray = detailsArray.filter { it !in serialNumbers }
-
 
                         // Update in a single operation
                         issuedCylindersRef.update("Details" to updatedDetailsArray)
                     }
                 }
             }
-
 
             // TASK 4: Update LPG quantities
             val updateLpgTask = async {
@@ -1493,22 +1516,18 @@ suspend fun CustomCheckboxReceive(
                         val lpgRef = db.collection("Cylinders").document("LPG")
                         val lpgSnapshot = lpgRef.get()
 
-
                         if (lpgSnapshot.exists) {
                             val lpgFullMap = lpgSnapshot.get("LPGFull") as? Map<String, Int> ?: emptyMap()
                             val updatedLpgFullMap = lpgFullMap.toMutableMap()
-
 
                             // Update all volume types at once
                             lpgVolumeUpdates.forEach { (volumeTypeKey, quantity) ->
                                 updatedLpgFullMap[volumeTypeKey] = (updatedLpgFullMap[volumeTypeKey] ?: 0) + quantity
                             }
 
-
                             lpgRef.update("LPGFull" to updatedLpgFullMap)
                         }
                     }
-
 
                     // Task 4.2: Update vendor's LPG Quantities
                     val vendorLpgTask = async {
@@ -1517,14 +1536,11 @@ suspend fun CustomCheckboxReceive(
                             .collection("Names")
                             .document(VendorName)
 
-
                         val lpgIssuedSnapshot = lpgIssuedRef.get()
-
 
                         if (lpgIssuedSnapshot.exists) {
                             val quantitiesMap = lpgIssuedSnapshot.get("Quantities") as? Map<String, Int> ?: emptyMap()
                             val updatedQuantitiesMap = quantitiesMap.toMutableMap()
-
 
                             // Update all volume types at once
                             lpgVolumeUpdates.forEach { (volumeTypeKey, quantity) ->
@@ -1532,48 +1548,47 @@ suspend fun CustomCheckboxReceive(
                                 updatedQuantitiesMap[volumeTypeKey] = maxOf(0, currentQty - quantity)
                             }
 
-
                             lpgIssuedRef.update("Quantities" to updatedQuantitiesMap)
                         }
                     }
-
 
                     // Wait for both LPG tasks to complete
                     awaitAll(lpgFullTask, vendorLpgTask)
                 }
             }
 
-
-            // TASK 5: Update vendor credit
+            // TASK 5: Update vendor credit - MODIFIED THIS TASK
             val updateVendorCreditTask = async {
                 val vendorDetailsRef = db.collection("Vendors")
                     .document("Details")
                     .collection("Names")
                     .document(VendorName)
 
-
                 val vendorDetailsSnapshot = vendorDetailsRef.get()
-
 
                 if (vendorDetailsSnapshot.exists) {
                     val detailsMap = vendorDetailsSnapshot.get("Details") as? Map<String, String> ?: emptyMap()
 
-
-                    // Update credit value
+                    // Parse all values to ensure we handle them as numbers
                     val currentCredit = detailsMap["Credit"]?.toDoubleOrNull() ?: 0.0
-                    val newCredit = currentCredit + (creditInput.toDoubleOrNull() ?: 0.0)
+                    val cashOutValue = cashOut.toDoubleOrNull() ?: 0.0
+                    val creditInputValue = creditInput.toDoubleOrNull() ?: 0.0
 
+                    // Calculate new credit: (current credit - cash out) + new credit input
+                    // This deducts cash out and adds the credit input
+                    val newCredit = (currentCredit - cashOutValue) + creditInputValue
+
+                    // Ensure credit never goes below 0
+                    val finalCredit = maxOf(0.0, newCredit)
 
                     // Update in a single operation
                     val updatedDetailsMap = detailsMap.toMutableMap().apply {
-                        this["Credit"] = newCredit.toString()
+                        this["Credit"] = finalCredit.toString()
                     }
-
 
                     vendorDetailsRef.update("Details" to updatedDetailsMap)
                 }
             }
-
 
             // Wait for all tasks to complete
             awaitAll(
@@ -1584,7 +1599,6 @@ suspend fun CustomCheckboxReceive(
                 updateVendorCreditTask
             )
         }
-
 
         // Call onSuccess after all operations complete
         onSuccess()

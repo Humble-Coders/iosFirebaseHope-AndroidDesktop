@@ -71,6 +71,8 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation(libs.apache.pdfbox)
+
         }
     }
 }
@@ -108,6 +110,8 @@ android {
         compose = true
     }
     dependencies {
+        implementation ("com.itextpdf:itextg:5.5.10")
+
         debugImplementation(compose.uiTooling);
     }
 }

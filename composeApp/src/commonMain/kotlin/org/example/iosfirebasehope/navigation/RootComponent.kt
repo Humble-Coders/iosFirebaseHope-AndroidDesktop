@@ -541,7 +541,7 @@ class RootComponent(
                     VendorName = config.vendorName,
                     dateTime = config.dateTime,
                     onBackClick = {
-                        navigation.pop()
+                        navigation.replaceAll(Configuration.HomeScreen)
                     },
                     componentContext = context
                 )

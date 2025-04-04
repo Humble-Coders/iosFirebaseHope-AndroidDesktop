@@ -27,8 +27,10 @@ kotlinxSerializationJson = "1.7.3"
 androidx-lifecycle = "2.8.4"
 compose-multiplatform = "1.7.0"
 kotlinx-coroutines = "1.9.0"
+pdfbox = "2.0.27"
 
 [libraries]
+apache-pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 kalendar = { module = "io.github.himanshoe:kalendar", version.ref = "kalendar" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

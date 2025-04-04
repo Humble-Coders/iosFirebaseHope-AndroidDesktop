@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,13 +26,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
@@ -71,6 +75,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -79,6 +84,380 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.example.iosfirebasehope.navigation.components.CustomerDetailsScreenComponent
 import org.example.iosfirebasehope.navigation.events.CustomerDetailsScreenEvent
+
+// First, let's add an Edit Customer Details Dialog
+// Fixed EditCustomerDetailsDialog to resolve scrolling and input issues
+@Composable
+fun EditCustomerDetailsDialog(
+    customerName: String,
+    customerDetails: Map<String, String>,
+    onDismiss: () -> Unit,
+    onSave: (Map<String, String>) -> Unit,
+    db: FirebaseFirestore,
+    coroutineScope: CoroutineScope
+) {
+    var editedDetails by remember { mutableStateOf(customerDetails.toMutableMap()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    Dialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // Title
+                Text(
+                    text = "Edit Customer Details",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFF2f80eb),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Content - using LazyColumn instead of VerticalScroll
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    // Phone Number
+                    item {
+                        OutlinedTextField(
+                            value = editedDetails["Phone Number"] ?: "",
+                            onValueChange = { editedDetails = editedDetails.toMutableMap().apply {
+                                put("Phone Number", it)
+                            } },
+                            label = { Text("Phone Number") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            singleLine = true
+                        )
+                    }
+
+                    // Address
+                    item {
+                        OutlinedTextField(
+                            value = editedDetails["Address"] ?: "",
+                            onValueChange = { editedDetails = editedDetails.toMutableMap().apply {
+                                put("Address", it)
+                            } },
+                            label = { Text("Address") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            singleLine = false,
+                            maxLines = 3
+                        )
+                    }
+
+                    // Deposit
+                    item {
+                        OutlinedTextField(
+                            value = editedDetails["Deposit"] ?: "",
+                            onValueChange = { editedDetails = editedDetails.toMutableMap().apply {
+                                put("Deposit", it)
+                            } },
+                            label = { Text("Deposit") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+
+                    // Credit (read-only)
+                    item {
+                        OutlinedTextField(
+                            value = editedDetails["Credit"] ?: "",
+                            onValueChange = { /* Credit is read-only */ },
+                            label = { Text("Credit") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            enabled = false,
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                disabledTextColor = Color.Gray,
+                                disabledLabelColor = Color.Gray,
+                                disabledBorderColor = Color.LightGray
+                            ),
+                            singleLine = true
+                        )
+                    }
+
+                    // Average Days
+                    item {
+                        OutlinedTextField(
+                            value = editedDetails["Average Days"] ?: "",
+                            onValueChange = { editedDetails = editedDetails.toMutableMap().apply {
+                                put("Average Days", it)
+                            } },
+                            label = { Text("Average Days (Rotation)") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            enabled = false
+                        )
+                    }
+
+                    // Reference Name
+                    item {
+                        OutlinedTextField(
+                            value = editedDetails["Reference Name"] ?: "",
+                            onValueChange = { editedDetails = editedDetails.toMutableMap().apply {
+                                put("Reference Name", it)
+                            } },
+                            label = { Text("Reference Name") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            singleLine = true
+                        )
+                    }
+
+                    // Reference Mobile
+                    item {
+                        OutlinedTextField(
+                            value = editedDetails["Reference Mobile"] ?: "",
+                            onValueChange = { editedDetails = editedDetails.toMutableMap().apply {
+                                put("Reference Mobile", it)
+                            } },
+                            label = { Text("Reference Mobile") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            singleLine = true
+                        )
+                    }
+
+                    // UID
+                    item {
+                        OutlinedTextField(
+                            value = editedDetails["UID"] ?: "",
+                            onValueChange = { editedDetails = editedDetails.toMutableMap().apply {
+                                put("UID", it)
+                            } },
+                            label = { Text("UID") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            singleLine = true
+                        )
+                    }
+
+                    // Add extra space at the bottom to ensure scrolling works well
+                    item {
+                        Spacer(modifier = Modifier.height(200.dp))
+                    }
+                }
+
+                // Error message
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage!!,
+                        color = Color.Red,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
+                // Action buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        enabled = !isLoading,
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Cancel", color = Color(0xFF2f80eb))
+                    }
+
+                    Button(
+                        onClick = {
+                            // Validate fields
+                            val phoneNumber = editedDetails["Phone Number"]
+                            if (phoneNumber.isNullOrBlank()) {
+                                errorMessage = "Phone number is required"
+                                return@Button
+                            }
+
+                            isLoading = true
+                            errorMessage = null
+
+                            coroutineScope.launch {
+                                try {
+                                    // Update customer details in Firestore
+                                    db.collection("Customers")
+                                        .document("Details")
+                                        .collection("Names")
+                                        .document(customerName)
+                                        .update(mapOf("Details" to editedDetails))
+
+                                    // Notify success
+                                    onSave(editedDetails)
+                                    isLoading = false
+                                    onDismiss()
+                                } catch (e: Exception) {
+                                    errorMessage = "Failed to update: ${e.message}"
+                                    isLoading = false
+                                }
+                            }
+                        },
+                        enabled = !isLoading,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb))
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text("Save Changes", color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Now let's modify the SwipeableCustomerDetailsCard to include an edit button
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SwipeableCustomerDetailsCard(
+    customerName: String,
+    customerDetails: Map<String, String>,
+    coroutineScope: CoroutineScope,
+    db: FirebaseFirestore, // Add Firestore parameter
+    onDetailsUpdated: (Map<String, String>) -> Unit // Callback for when details are updated
+) {
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    if (showEditDialog) {
+        EditCustomerDetailsDialog(
+            customerName = customerName,
+            customerDetails = customerDetails,
+            onDismiss = { showEditDialog = false },
+            onSave = { updatedDetails ->
+                onDetailsUpdated(updatedDetails)
+            },
+            db = db,
+            coroutineScope = coroutineScope
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 8.dp),
+        elevation = 4.dp,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            // Title row with edit button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = customerName,
+                    style = MaterialTheme.typography.subtitle1,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Edit button
+                Button(
+                    onClick = { showEditDialog = true },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF2f80eb)),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        "Edit Details",
+                        color = Color.White,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Divider(color = Color.LightGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
+
+            // Pager content
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth()
+            ) { page ->
+                when (page) {
+                    0 -> CustomerDetailsPage(
+                        listOf(
+                            "Phone Number" to (customerDetails["Phone Number"] ?: "Not Available"),
+                            "Deposit" to (customerDetails["Deposit"] ?: "Not Available"),
+                            "Credit" to (customerDetails["Credit"] ?: "Not Available"),
+                            "Avg Rotation" to ((customerDetails["Average Days"]?.let { "$it days" }) ?: "Not Available")
+                        )
+                    )
+                    1 -> CustomerDetailsPage(
+                        listOf(
+                            "Address" to (customerDetails["Address"] ?: "Not Available"),
+                            "Reference Name" to (customerDetails["Reference Name"] ?: "Not Available"),
+                            "Reference Mobile" to (customerDetails["Reference Mobile"] ?: "Not Available"),
+                            "UID" to (customerDetails["UID"] ?: "Not Available")
+                        )
+                    )
+                }
+            }
+
+            // Page Indicators
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(2) { iteration ->
+                    val color = if (pagerState.currentPage == iteration) Color.DarkGray else Color.LightGray
+                    Box(
+                        modifier = Modifier
+                            .padding(2.dp)
+                            .size(8.dp)
+                            .background(color)
+                            .clickable {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(iteration)
+                                }
+                            }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Finally, update the CustomerDetailsScreenUI function to use the modified SwipeableCustomerDetailsCard
 
 
 @Composable
@@ -210,13 +589,19 @@ fun CustomerDetailsScreenUI(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            if (customerDetails != null) {
+            if (customerDetails != null)  {
                 SwipeableCustomerDetailsCard(
                     customerName = customerName,
                     customerDetails = customerDetails!!,
-                    coroutineScope = coroutineScope
-                )
-            } else {
+                    coroutineScope = coroutineScope,
+                    db = db, // Pass Firestore instance
+                    onDetailsUpdated = { updatedDetails ->
+                        // Update the local state when details are edited
+                        customerDetails = updatedDetails
+                        coroutineScope.launch {
+                            scaffoldState.snackbarHostState.showSnackbar("Customer details updated successfully")
+                        }
+                    })} else {
                 // Show loading or error message
                 Text(
                     text = "Loading customer details...",

@@ -22,9 +22,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.example.iosfirebasehope.navigation.components.GenerateBillScreenComponent
 import org.example.iosfirebasehope.navigation.events.GenerateBillScreenEvent
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 @Composable
-fun GenerateBillScreenUI(
+fun GenerateBillScreenUI1(
     customerName: String,
     dateTime: String,
     db: FirebaseFirestore,
@@ -352,6 +354,211 @@ fun GenerateBillScreenUI(
                         }
                     }
                 }
+                // LPG Issued
+                transactionDetails?.lpgIssued?.let { lpgItems ->
+                    if (lpgItems.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "LPG Issued",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF0F0F0))
+                                    .padding(8.dp),
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        itemsIndexed(lpgItems) { _, lpgItem ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "LPG ${lpgItem["Volume Type"] ?: "Unknown"}",
+                                    modifier = Modifier.weight(2f),
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = lpgItem["Quantity"] ?: "1",
+                                    modifier = Modifier.weight(0.5f),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "Rs.${lpgItem["Price"] ?: "0"}",
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp
+                                )
+
+                                // Calculate total for this item
+                                val quantity = lpgItem["Quantity"]?.toIntOrNull() ?: 1
+                                val price = lpgItem["Price"]?.toDoubleOrNull() ?: 0.0
+                                val total = quantity * price
+
+                                Text(
+                                    text = "Rs.${total}",
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Divider(color = Color.LightGray)
+                        }
+                    }
+                }
+                // LPG Returned section
+                // LPG Returned section
+                transactionDetails?.lpgReturned?.let { lpgItems ->
+                    if (lpgItems.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "LPG Returned",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF0F0F0))
+                                    .padding(8.dp),
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        itemsIndexed(lpgItems) { _, lpgItem ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "LPG ${lpgItem["Volume Type"] ?: "Unknown"}",
+                                    modifier = Modifier.weight(2f),
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = lpgItem["Quantity"] ?: "1",
+                                    modifier = Modifier.weight(0.5f),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 12.sp
+                                )
+
+                            }
+                            Divider(color = Color.LightGray)
+                        }
+                    }
+                }
+
+                // Cylinders Returned
+                // Cylinders Returned
+                // Cylinders Returned
+                transactionDetails?.cylindersReturned?.let { cylinders ->
+                    if (cylinders.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Cylinders Returned",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF0F0F0))
+                                    .padding(8.dp),
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        itemsIndexed(cylinders) { _, cylinder ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${cylinder["Gas Type"] ?: "Unknown"} ${cylinder["Volume Type"] ?: "Unknown"} (S.No: ${cylinder["Serial Number"] ?: "N/A"}) (Returned)",
+                                    modifier = Modifier.weight(2f),
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "1",
+                                    modifier = Modifier.weight(0.5f),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "-",
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "-",
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Divider(color = Color.LightGray)
+                        }
+                    }
+                }
+                // Inventory Issued
+                transactionDetails?.inventoryIssued?.let { items ->
+                    if (items.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Inventory Items",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF0F0F0))
+                                    .padding(8.dp),
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        itemsIndexed(items) { _, item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = item["Name"] ?: "Unknown Item",
+                                    modifier = Modifier.weight(2f),
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = item["Quantity"] ?: "1",
+                                    modifier = Modifier.weight(0.5f),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 12.sp
+                                )
+
+                                // Calculate unit price (if possible)
+                                val quantity = item["Quantity"]?.toIntOrNull() ?: 1
+                                val totalPrice = item["Price"]?.toDoubleOrNull() ?: 0.0
+                                val unitPrice = if (quantity > 0) totalPrice / quantity else totalPrice
+
+                                Text(
+                                    text = "Rs.${(unitPrice)}",
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "Rs.${item["Price"] ?: "0"}",
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.End,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            Divider(color = Color.LightGray)
+                        }
+                    }
+                }
 
                 // Continue with remaining code for LPG issued, inventory issued, etc.
                 // ...
@@ -582,7 +789,7 @@ suspend fun fetchTransactionDetails(
     val cylindersReturned = cylindersReturnedDoc.get("CylindersReturned") as? List<Map<String, String>> ?: emptyList()
     val inventoryIssued = inventoryIssuedDoc.get("InventoryIssued") as? List<Map<String, String>> ?: emptyList()
     val lpgIssued = lpgIssuedDoc.get("LPGIssued") as? List<Map<String, String>> ?: emptyList()
-    val lpgReturned = lpgReturnedDoc.get("LPGReturned") as? List<Map<String, String>> ?: emptyList()
+    val lpgReturnedMap = lpgReturnedDoc.get("LPGReturned") as? Map<String, Int>?: emptyMap()
 
     // Create a lookup map for cylinder details to avoid repeated searches
     val cylinderDetailsMap = cylindersDetails.associateBy { it["Serial Number"] ?: "" }
@@ -596,12 +803,29 @@ suspend fun fetchTransactionDetails(
             put("Volume Type", cylinderDetail["Volume Type"] ?: "Unknown")
         }
     }
+    val enrichedCylindersReturned = cylindersReturned.map { cylinder ->
+        val serialNumber = cylinder["Serial Number"] ?: ""
+        val cylinderDetail = cylinderDetailsMap[serialNumber] ?: emptyMap()
+        cylinder.toMutableMap().apply {
+            put("Gas Type", cylinderDetail["Gas Type"] ?: "Unknown")
+            put("Volume Type", cylinderDetail["Volume Type"] ?: "Unknown")
+        }
+    }
+
+    val lpgReturned = lpgReturnedMap.map { (volumeType, quantity) ->
+        mapOf(
+            "Volume Type" to volumeType,
+            "Quantity" to quantity.toString(),
+            // If you don't have price data for returned LPG, use "N/A" or "0
+        )
+    }
+
 
     TransactionDetails(
         cash = cash,
         credit = credit,
         cylindersIssued = enrichedCylindersIssued,
-        cylindersReturned = cylindersReturned,
+        cylindersReturned = enrichedCylindersReturned,
         inventoryIssued = inventoryIssued,
         lpgIssued = lpgIssued,
         lpgReturned = lpgReturned,

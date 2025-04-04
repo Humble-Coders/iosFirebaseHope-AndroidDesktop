@@ -1,8 +1,5 @@
 package org.example.iosfirebasehope.ui
 
-
-
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
@@ -25,7 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
@@ -38,7 +34,6 @@ import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -46,7 +41,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,9 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,6 +73,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.example.iosfirebasehope.navigation.components.SendForRefillingComponent
 import org.example.iosfirebasehope.navigation.events.SendForRefillingEvent
+
 @Composable
 fun SendForRefillingScreenUI(
     component: SendForRefillingComponent,
@@ -100,15 +93,9 @@ fun SendForRefillingScreenUI(
     val details = remember { mutableStateOf<Map<String, String>?>(null) }
     val creditValue = remember { mutableStateOf<String?>(null) }
     val phoneNumberValue = remember { mutableStateOf<String?>(null) }
-    var showAddVendorDialog by remember { mutableStateOf(false) }
     var showAddCylinderDialog by remember { mutableStateOf(false) }
-    var selectedVendor by remember { mutableStateOf<String?>(null) }
-    var Vendors by remember { mutableStateOf<List<String>>(emptyList()) }
     var issuedCylinders by remember { mutableStateOf<List<IssuedCylinder>>(emptyList()) }
-    var issueDate by remember { mutableStateOf<LocalDate?>(null) }
-    var showDatePicker by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
     var alreadySelectedCylinders by remember { mutableStateOf<List<String>>(emptyList()) }
     var alreadySelectedLPGQuantities by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
