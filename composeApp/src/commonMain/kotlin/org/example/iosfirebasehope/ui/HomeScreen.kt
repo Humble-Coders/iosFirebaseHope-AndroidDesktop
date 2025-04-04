@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.DateRange
@@ -132,55 +133,55 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                         )
                     }
                     else{
-                    DrawerItem(
-                        icon = Icons.Default.Info,
-                        text = "All Cylinder Details",
-                        onClick = {
-
-                            component.onEvent(HomeScreenEvent.OnAllCylinderDetailsClick(cylinderDetailsList))
-                            scope.launch { drawerState.close() }
-                        }
-                    )
-                    Divider(color = Color.Gray, thickness = 1.dp)
-                    DrawerItem(
-                        icon = Icons.Default.Person,
-                        text = "Customer Details",
-                        onClick = {
-                            component.onEvent(HomeScreenEvent.OnAllCustomerClick(cylinderDetailsList,gasList))
-                            scope.launch { drawerState.close() }
-                        }
-                    )
-                    Divider(color = Color.Gray, thickness = 1.dp)
-                    DrawerItem(
-                        icon = Icons.Default.AddCircle,
-                        text = "Add Cylinder",
-                        onClick = {
-                            component.onEvent(HomeScreenEvent.OnAddCylinderClick(cylinderDetailsList))
-                            scope.launch { drawerState.close() }
-                        }
-                    )
-                    Divider(color = Color.Gray, thickness = 1.dp)
-                    DrawerItem(
-                        icon = Icons.Default.Person,
-                        text = "Vendor Details",
-                        onClick = {
-                            component.onEvent(HomeScreenEvent.OnAllVendorClick(cylinderDetailsList,gasList))
-                            scope.launch { drawerState.close() }
-                        }
-                    )
-                    Divider(color = Color.Gray, thickness = 1.dp)
-
-                    DrawerItem(
-                        icon = Icons.Default.Add,
-                        text = "Add New Customer",
-                        onClick = {
-                            showAddCustomerDialog = true
-                        }
-                    )
-                    Divider(color = Color.Gray, thickness = 1.dp)
-
                         DrawerItem(
                             icon = Icons.Default.Info,
+                            text = "All Cylinder Details",
+                            onClick = {
+
+                                component.onEvent(HomeScreenEvent.OnAllCylinderDetailsClick(cylinderDetailsList))
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+                        DrawerItem(
+                            icon = Icons.Default.Person,
+                            text = "Customer Details",
+                            onClick = {
+                                component.onEvent(HomeScreenEvent.OnAllCustomerClick(cylinderDetailsList,gasList))
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+                        DrawerItem(
+                            icon = Icons.Default.AddCircle,
+                            text = "Add Cylinder",
+                            onClick = {
+                                component.onEvent(HomeScreenEvent.OnAddCylinderClick(cylinderDetailsList))
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+                        DrawerItem(
+                            icon = Icons.Default.Person,
+                            text = "Vendor Details",
+                            onClick = {
+                                component.onEvent(HomeScreenEvent.OnAllVendorClick(cylinderDetailsList,gasList))
+                                scope.launch { drawerState.close() }
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+
+                        DrawerItem(
+                            icon = Icons.Default.AddCircle,
+                            text = "Add New Customer",
+                            onClick = {
+                                showAddCustomerDialog = true
+                            }
+                        )
+                        Divider(color = Color.Gray, thickness = 1.dp)
+
+                        DrawerItem(
+                            icon = Icons.AutoMirrored.Filled.List,
                             text = "Credit List",
                             onClick = {
                                 component.onEvent(HomeScreenEvent.onCreditListClick)
@@ -189,7 +190,7 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                         Divider(color = Color.Gray, thickness = 1.dp)
 
                         DrawerItem(
-                            icon = Icons.Default.List,
+                            icon = Icons.AutoMirrored.Filled.List,
                             text = "Issued List",
                             onClick = {
                                 component.onEvent(HomeScreenEvent.onCurrentlyIssuedClick(cylinderDetailsList))
@@ -224,16 +225,16 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                         )
                         Divider(color = Color.Gray, thickness = 1.dp)
 
-                    Spacer(modifier = Modifier.weight(1f)) // Spacer to push content to the top
-                    Image(
-                        painter = painterResource(resource = Res.drawable.developed), // Replace with your image resource
-                        contentDescription = "Bottom Image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp)
-                            .size(120.dp)
-                    )
-                }}
+                        Spacer(modifier = Modifier.weight(1f)) // Spacer to push content to the top
+                        Image(
+                            painter = painterResource(resource = Res.drawable.developed), // Replace with your image resource
+                            contentDescription = "Bottom Image",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp)
+                                .size(120.dp)
+                        )
+                    }}
             }
         ) {
             Scaffold(
@@ -244,21 +245,33 @@ fun HomeScreenUI(component: HomeScreenComponent, db: FirebaseFirestore) {
                         backgroundColor = Color(0xFF2f80eb),
                         contentColor = Color.White,
                         navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            IconButton(
+                                onClick = {
+                                    if (!isLoading) {
+                                        scope.launch { drawerState.open() }
+                                    }
+                                },
+                                enabled = !isLoading
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Menu,
-                                    contentDescription = "Menu"
+                                    contentDescription = "Menu",
+                                    tint = if (isLoading) Color.Gray else Color.White
                                 )
                             }
                         },
                         actions = {
-                            IconButton(onClick = {
-                                val filteredCylinderDetailList= cylinderDetailsList.filter { it["Status"] == "Issued" }
-                                component.onEvent(HomeScreenEvent.OnNotificationClick(filteredCylinderDetailList))
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    val filteredCylinderDetailList = cylinderDetailsList.filter { it["Status"] == "Issued" }
+                                    component.onEvent(HomeScreenEvent.OnNotificationClick(filteredCylinderDetailList))
+                                },
+                                enabled = !isLoading
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Notifications,
-                                    contentDescription = "Notifications"
+                                    contentDescription = "Notifications",
+                                    tint = if (isLoading) Color.Gray else Color.White
                                 )
                             }
                         }
